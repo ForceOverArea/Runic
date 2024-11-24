@@ -4,4 +4,4 @@
 
 # Prototyping files
 *.py 
-*.drawio.bkp
+*.drawio.*

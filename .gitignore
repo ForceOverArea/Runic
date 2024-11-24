@@ -1,2 +1,7 @@
+# Haskell/Stack artifacts
 .stack-work/
 *~
+
+# Prototyping files
+*.py 
+*.drawio.bkp

@@ -1,6 +1,8 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Tokenizer 
-    ( tokenizeRunicSource
+    ( initLineNoMap 
+    , runicTokenize
+    , RunicItem
     ) where
 
 import Prelude hiding ( lines, lookup, words )
@@ -72,21 +74,17 @@ rTokenizeRawText =
         punctuateTokens h n = replace n (" " <> n <> " ") h
 
 -- | Creates a map of line numbers to their corresponding text.
-rInitLineNoMap :: Text -> Map Int Text
-rInitLineNoMap t =
+initLineNoMap :: Text -> Map Int Text
+initLineNoMap t =
     let rLinesOfText = split (== '\n') t
         rLineNos     = [0..length rLinesOfText - 1]
     in fromList $ zip rLineNos rLinesOfText
 
 -- | Creates a List of RunicItems (RunicTokens with the line number
 -- they originated from)
-rCreateRunicItemList :: Map Int Text -> [RunicItem]
-rCreateRunicItemList = foldrWithKey createRunicItems []
+runicTokenize :: Map Int Text -> [RunicItem]
+runicTokenize = foldrWithKey createRunicItems []
     where
         createRunicItems :: Int -> Text -> [RunicItem] -> [RunicItem]
         createRunicItems lineNo lineText items =
             items ++ map (RunicItem lineNo) (rTokenizeRawText lineText)
-
--- | Creates s List of RunicItems from the plaintext in a Runic source file.
-tokenizeRunicSource :: Text -> [RunicItem]
-tokenizeRunicSource = rCreateRunicItemList . rInitLineNoMap

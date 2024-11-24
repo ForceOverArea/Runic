@@ -26,8 +26,8 @@ source-repository head
 library
   exposed-modules:
       Lib
-      Parser
       Shunting
+      Tokenizer
       Utils
   other-modules:
       Paths_runic

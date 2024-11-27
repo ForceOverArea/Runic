@@ -11,8 +11,6 @@ import Data.Map ( Map, (!), member )
 import Prelude hiding ( lookup )
 import Text.Read ( readMaybe )
 
-import Utils ( eitherFromMaybe )
-
 type ExprArgs = Map String Double
 type Context = Map String CustomToken
 
@@ -76,10 +74,9 @@ tokenize _ [] = Left "cannot tokenize an empty string"
 tokenize ctx (x:xs)
     | x `elem` operators = Right $ Op x
     | member (x:xs) ctx = Right $ CusTok $ ctx ! (x:xs)
-    | otherwise = do
-        x1 <- let errMsg = "failed to tokenize unknown value: " ++ (x:xs)
-            in eitherFromMaybe errMsg $ readMaybe (x:xs)
-        Right $ Num x1
+    | otherwise = case readMaybe (x:xs) of
+        Just val -> Right $ Num val
+        Nothing -> Left $ "failed to tokenize unknown value: " ++ (x:xs)
 
 rpnify :: [Token] -> Either String [Token]
 rpnify input = shntngYrd input [] []
@@ -144,7 +141,7 @@ evalRpnExpr tokens ctx = pfEval tokens [] ctx
 
 compileExpr :: String -> Context -> Either String [Token]
 compileExpr expr ctx = do
-    tokens <- getTokens expr;
+    tokens <- getTokens expr
     rpnify tokens
     where
         getTokens :: String -> Either String [Token]

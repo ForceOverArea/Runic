@@ -25,10 +25,13 @@ source-repository head
 
 library
   exposed-modules:
+      Compiler
+      CompilerInternal
+      Domain
+      Guess
       Lib
       Shunting
       Tokenizer
-      Utils
   other-modules:
       Paths_runic
   autogen-modules:

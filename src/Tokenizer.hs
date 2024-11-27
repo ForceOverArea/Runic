@@ -1,17 +1,24 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE InstanceSigs #-}
 module Tokenizer 
     ( initLineNoMap 
     , runicTokenize
-    , RunicItem
+    , rKeywords
+    , RunicItem (..)
+    , RunicToken (..)
     ) where
 
 import Prelude hiding ( lines, lookup, words )
 
 import Control.Arrow ( arr, (>>>) )
 import Data.Map ( foldrWithKey, fromList, keys, lookup, Map )
-import Data.Text ( replace, split, words, Text )
+import Data.Text ( replace, split, unpack, words, Text )
 
 data RunicItem = RunicItem Int RunicToken
+instance Show RunicItem where
+    show :: RunicItem -> String
+    show (RunicItem _ RNewline) = show RNewline
+    show (RunicItem l tok) = show tok ++ " on line " ++ show l
 
 -- | All the different token values that may exist in Runic source
 data RunicToken
@@ -32,7 +39,31 @@ data RunicToken
     -- These tokens do not have a corresponding Runic keyword:
     | RExpression Text
     | RNewline
-    deriving (Show)
+    deriving (Eq, Ord)
+    
+instance Show RunicToken where
+    show :: RunicToken -> String
+    show tok = case tok of
+        RKeep     -> keyword "keep"
+        ROn       -> keyword "on"
+        RLBracket -> "'['"
+        RRBracket -> "']'"
+        RGuess    -> keyword "guess"
+        RFor      -> keyword "for"    
+        RConst    -> keyword "const"  
+        RFn       -> keyword "fn"     
+        RReturn   -> keyword "return" 
+        RIf       -> keyword "if"     
+        RThen     -> keyword "then"   
+        RElse     -> keyword "else"   
+        RSystem   -> keyword "system" 
+        REnd      -> keyword "end"    
+        (RExpression "") -> "expression"
+        (RExpression t) -> "expression '" ++ unpack t ++ "'"
+        RNewline  -> "newline"
+        where 
+            keyword :: String -> String
+            keyword s = "keyword '" ++ s ++ "'"
 
 -- | Provides mapping between which substrings represent which tokens.
 rKeywords :: Map Text RunicToken

@@ -1,32 +1,21 @@
-import Test.HUnit ( assertEqual, Counts, runTestTT, test, TestCase, (~:) )
-import Lib 
-    ( getConstDefinitions
-    , getFnDefinitions 
-    )
+import Test.HUnit ( assertEqual, Counts, runTestTT, test, (~:) )
 
-exampleFileContents :: String
-exampleFileContents = 
-    "const PI = 22 / 7                      \n\
-    \const TWO_PI = PI * 2                  \n\
-    \                                       \n\
-    \fn circle_area(r) = return PI * r^2    \n\
-    \                                       \n\
-    \fn circle_circumf(r) = TWO_PI * r      \n\
-    \                                       \n"
+import Compiler.Parser ( (<?->), (<?+>) )
 
-testConstRegex :: TestCase
-testConstRegex = assertEqual "consts in exampleFileContents: " 
-    [ "const PI = 22 / 7                      \n"
-    , "const TWO_PI = PI * 2                  \n"
-    ]
-    (getConstDefinitions exampleFileContents)
+-- | 
+data Token
+    = Keep
+    | On
+    | LBrack
+    | RBrack
+    | Expr Text
+    deriving (Eq, Show)
 
 main :: IO Counts
 main = do 
     runTestTT $ test 
-        [ "testConstRegex" ~: 
-        , "testFnRegex" ~: assertEqual "functions in exampleFileContents: " 
-            [ "fn circle_area(r) = return PI * r^2    \n"
+        [ "testFnRegex" ~: assertEqual $ liftParser Keep <?-> (Expr "") <?-> On <?-> LBrack <?-> (Expr "") <?-> RBrack
+            [ 
             , "fn circle_circumf(r) = TWO_PI * r      \n"
             ]
             (getFnDefinitions exampleFileContents) 

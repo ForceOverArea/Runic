@@ -24,6 +24,12 @@ data Token
     | Expr Text
     deriving Show
 
+-- | Equality definition for the Token type
+instance Eq Token where
+    (==) :: Token -> Token -> Bool
+    Expr _ == Expr _ = True
+    x == y = show x == show y -- Works since only Expr can contain instance-specific text
+
 {-|
 Provides a mapping between keywords in valid Runic syntax and their 
 corresponding Token value.
@@ -48,9 +54,3 @@ the text-Token mapping.
 keywords :: [Text]
 keywords = keys tokenMapping
 
--- | Equality definition for the Token type
-instance Eq Token where
-    (==) :: Token -> Token -> Bool
-    Expr _ == Expr _ = True
-    x == y = show x == show y 
-    -- Works since only Expr can contain instance-specific text

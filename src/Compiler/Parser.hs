@@ -147,8 +147,8 @@ liftStashParser :: (Eq a, Show a) => a -> ParserStateTrans a
 liftStashParser tok = stashValidator [tok] (parseErrorMsg tok)
 
 {-| 
-Lifts a token into a token validator that stashes the token upon
-validation.
+Lifts a token into a token validator that ignores the token upon
+validation or proceeds to the next step.
 -}
 liftOptParser :: Eq a => a -> ParserStateTrans a
 liftOptParser tok = optionValidator [tok]
@@ -161,43 +161,41 @@ that ignores the token on validation or returns an error message.
 prevTokenValid <-> nextToken = prevTokenValid |-| [nextToken]
 
 {-| 
-The capture validation operator for creating a token validator 
-that captures the token on validation or returns an 
-error message.
+The capture validation operator for creating a token validator that 
+captures the token on validation or returns an error message.
 -}
 (<+>) :: (Eq a, Show a) => ParserStateTrans a -> a -> ParserStateTrans a
 prevTokenValid <+> nextToken = prevTokenValid |+| [nextToken]
 
 {-| 
-The optional validation operator for creating a token 
-validator that ignores the token on validation or leaves the
-moves on to the next step in the validation process.
+The optional validation operator for creating a token validator that 
+ignores the token on validation or leaves the proceeds to the next 
+step in the validation process.
 -}
 (<?>) :: Eq a => ParserStateTrans a -> a -> ParserStateTrans a
 prevTokenValid <?> nextToken = prevTokenValid |?| [nextToken]
 
 {-| 
 The pass-through list validation operator for creating a token 
-validator that ignores the token on validation or returns an 
-error message.
+validator that ignores the token on validation or returns an error 
+message.
 -}
 (|-|) :: (Eq a, Show a) => ParserStateTrans a -> [a] -> ParserStateTrans a
 prevTokenValid |-| nextTokens = prevTokenValid 
     >> validator nextTokens (parseManyErrorMsg nextTokens)
 
 {-| 
-The capture list validation operator for creating a token 
-validator that captures the token on validation or returns an 
-error message.
+The capture list validation operator for creating a token validator 
+that captures the token on validation or returns an error message.
 -}
 (|+|) :: (Eq a, Show a) => ParserStateTrans a -> [a] -> ParserStateTrans a
 prevTokenValid |+| nextTokens = prevTokenValid 
     >> stashValidator nextTokens (parseManyErrorMsg nextTokens)
 
 {-|
-The optional list validation operator for creating a token 
-validator that ignores the token on validation or leaves the
-moves on to the next step in the validation process.
+The optional list validation operator for creating a token validator 
+that ignores the token on validation or proceeds to the next step in 
+the validation process.
 -}
 (|?|) :: Eq a => ParserStateTrans a -> [a] -> ParserStateTrans a
 prevTokenValid |?| nextTokens = prevTokenValid 

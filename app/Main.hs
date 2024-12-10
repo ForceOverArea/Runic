@@ -24,17 +24,17 @@ validateDomain :: [Token] -> Either String (ParserState Token)
 validateDomain stack = execStateT validator (ParserState [] stack)
     where 
         validator = liftParser Keep 
-            <?+> (Expr "x") 
+            <?+> Expr "x"
             <?-> On
             <?-> LBrack
-            <?+> (Expr "0, 100")
+            <?+> Expr "0, 100"
             <?-> RBrack
 
 myMain :: Either String (ParserState Token)
 myMain = do
     let q = [Keep, Expr "x", {-On,-} LBrack, Expr "0, 100", RBrack]
-    parsed <- validateDomain q
-    return parsed
+    validateDomain q
+    
 
 main :: IO ()
 main = do

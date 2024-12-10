@@ -25,6 +25,8 @@ source-repository head
 
 library
   exposed-modules:
+      Compiler.Grammar
+      Compiler.Objects
       Compiler.Parser
       Lib
   other-modules:

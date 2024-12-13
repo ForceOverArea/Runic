@@ -21,6 +21,15 @@ data Token
     | RBrack
     | Guess
     | For
+    | Const
+    | Function
+    | Return
+    | If
+    | Then
+    | Else
+    | System
+    | End
+    | NewLine
     | Expr Text
     deriving Show
 
@@ -42,6 +51,14 @@ tokenMapping = fromList
     , ("]"      , RBrack)
     , ("guess"  , Guess)
     , ("for"    , For)
+    , ("const"  , Const)
+    , ("fn"     , Function)
+    , ("return" , Return)
+    , ("if"     , If)
+    , ("then"   , Then)
+    , ("else"   , Else)
+    , ("system" , System)
+    , ("end"    , End)
     ] 
     -- Expr does not have a corresponding keyword. It corresponds to 
     -- expressions that will be parsed for building context for 

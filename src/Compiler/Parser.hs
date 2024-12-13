@@ -158,14 +158,16 @@ The pass-through validation operator for creating a token validator
 that ignores the token on validation or returns an error message.
 -}
 (<->) :: (Eq a, Show a) => ParserStateTrans a -> a -> ParserStateTrans a
-prevTokenValid <-> nextToken = prevTokenValid |-| [nextToken]
+prevTokenValid <-> nextToken = prevTokenValid 
+    >> validator [nextToken] (parseErrorMsg nextToken)
 
 {-| 
 The capture validation operator for creating a token validator that 
 captures the token on validation or returns an error message.
 -}
 (<+>) :: (Eq a, Show a) => ParserStateTrans a -> a -> ParserStateTrans a
-prevTokenValid <+> nextToken = prevTokenValid |+| [nextToken]
+prevTokenValid <+> nextToken = prevTokenValid 
+    >> stashValidator [nextToken] (parseErrorMsg nextToken)
 
 {-| 
 The optional validation operator for creating a token validator that 
@@ -173,7 +175,8 @@ ignores the token on validation or leaves the proceeds to the next
 step in the validation process.
 -}
 (<?>) :: Eq a => ParserStateTrans a -> a -> ParserStateTrans a
-prevTokenValid <?> nextToken = prevTokenValid |?| [nextToken]
+prevTokenValid <?> nextToken = prevTokenValid 
+    >> optionValidator [nextToken]
 
 {-| 
 The pass-through list validation operator for creating a token 

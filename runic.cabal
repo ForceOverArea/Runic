@@ -28,6 +28,7 @@ library
       Compiler.Grammar
       Compiler.Objects
       Compiler.Parser
+      Compiler.Preprocess
       Lib
   other-modules:
       Paths_runic

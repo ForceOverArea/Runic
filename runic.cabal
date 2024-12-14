@@ -25,11 +25,12 @@ source-repository head
 
 library
   exposed-modules:
-      Compiler.Grammar
-      Compiler.Objects
-      Compiler.Parser
+      Compiler.Parser.Factory
+      Compiler.Parser.Grammar
+      Compiler.Parser.Objects
+      Compiler.Parser.TopLevel
       Compiler.Preprocess
-      Lib
+      Solver.Constrainer
   other-modules:
       Paths_runic
   autogen-modules:

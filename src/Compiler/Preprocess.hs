@@ -1,22 +1,14 @@
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE InstanceSigs #-}
 
 module Compiler.Preprocess 
     ( tokenizeSource
     ) where
 
 import Prelude hiding ( lookup, words )
-import Compiler.Objects ( tokenMapping, Token(..) )
+import Compiler.Parser.Objects ( tokenMapping, RunicToken(..), Token(..) )
 import Control.Arrow ( (>>>), (&&&), arr, first )
 import Data.Map ( fromList, keys, lookup, Map )
 import Data.Text ( replace, split, words, Text )
-
--- | A token with line number it originated from
-data RunicToken a = RunicToken Int a
-
-instance Functor RunicToken where
-    fmap :: (a -> b) -> RunicToken a -> RunicToken b
-    fmap f (RunicToken ln rt) = RunicToken ln $ f rt
 
 -- | Enumerates lines of text with their line numbers starting at 1
 getLineNumbers :: [Text] -> [(Int, Text)]

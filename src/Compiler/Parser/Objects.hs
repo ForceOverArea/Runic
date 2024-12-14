@@ -1,14 +1,16 @@
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Compiler.Objects
-    ( keywords
+module Compiler.Parser.Objects
+    ( getText
+    , keywords
     , tokenMapping
     , Token(..)
+    , RunicToken(..)
     ) where
 
 import Data.Map ( fromList, keys, Map )
-import Data.Text ( Text )
+import Data.Text ( pack, Text )
 
 {-| 
 Represents a token value expected by the Runic Compiler's main
@@ -38,6 +40,18 @@ instance Eq Token where
     (==) :: Token -> Token -> Bool
     Expr _ == Expr _ = True
     x == y = show x == show y -- Works since only Expr can contain instance-specific text
+
+-- | A token with line number it originated from
+data RunicToken a = RunicToken Int a
+
+-- | Extracts the text from an `Expr` Token. 
+getText :: Token -> Text
+getText (Expr t) = t
+getText tok = pack $ show tok
+
+instance Functor RunicToken where
+    fmap :: (a -> b) -> RunicToken a -> RunicToken b
+    fmap f (RunicToken ln rt) = RunicToken ln $ f rt
 
 {-|
 Provides a mapping between keywords in valid Runic syntax and their 
@@ -70,4 +84,3 @@ the text-Token mapping.
 -}
 keywords :: [Text]
 keywords = keys tokenMapping
-

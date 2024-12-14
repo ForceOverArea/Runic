@@ -1,4 +1,9 @@
-module Compiler.Parser
+{-|
+    A module for a minimal implementation of Regex, but for a generic
+    token type. This eases the process of adding new syntax to the 
+    Runic compiler/parser.
+-}
+module Compiler.Parser.Factory
     ( (<->)
     , (<+>)
     , (<?>)

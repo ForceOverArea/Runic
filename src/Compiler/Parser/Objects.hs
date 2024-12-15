@@ -4,11 +4,14 @@
 module Compiler.Parser.Objects
     ( getText
     , keywords
+    , makeRt
     , tokenMapping
     , Token(..)
+    , RToken
     , RunicToken(..)
     ) where
 
+import Compiler.Parser.Factory ( tEqual, TokenEq )
 import Data.Map ( fromList, keys, Map )
 import Data.Text ( pack, Text )
 
@@ -33,25 +36,40 @@ data Token
     | End
     | NewLine
     | Expr Text
-    deriving Show
+    deriving (Eq, Ord, Show)
 
 -- | Equality definition for the Token type
-instance Eq Token where
-    (==) :: Token -> Token -> Bool
-    Expr _ == Expr _ = True
-    x == y = show x == show y -- Works since only Expr can contain instance-specific text
-
--- | A token with line number it originated from
-data RunicToken a = RunicToken Int a
+instance TokenEq Token where
+    tEqual :: Token -> Token -> Bool
+    Expr _ `tEqual` Expr _ = True
+    x `tEqual` y = show x == show y -- Works since only Expr can contain instance-specific text
 
 -- | Extracts the text from an `Expr` Token. 
 getText :: Token -> Text
 getText (Expr t) = t
 getText tok = pack $ show tok
 
+-- | A token with line number it originated from
+data RunicToken a = RunicToken Int a
+    deriving (Eq, Ord)
+
+-- | A type alias for a RunicToken containing a Token value
+type RToken = RunicToken Token
+
 instance Functor RunicToken where
     fmap :: (a -> b) -> RunicToken a -> RunicToken b
     fmap f (RunicToken ln rt) = RunicToken ln $ f rt
+
+instance TokenEq a => TokenEq (RunicToken a) where
+    tEqual :: RunicToken a -> RunicToken a -> Bool
+    (RunicToken _ x) `tEqual` (RunicToken _ y) = x `tEqual` y
+
+instance Show a => Show (RunicToken a) where
+    show :: RunicToken a -> String
+    show (RunicToken ln tok) = show tok ++ "(on line " ++ show ln ++ ")"
+
+makeRt :: a -> RunicToken a
+makeRt = RunicToken 0
 
 {-|
 Provides a mapping between keywords in valid Runic syntax and their 

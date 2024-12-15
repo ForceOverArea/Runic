@@ -10,7 +10,7 @@ module Compiler.Parser.Grammar
     ) where
 
 import Prelude hiding ( lookup )
-import Compiler.Parser.Objects ( Token(..) )
+import Compiler.Parser.Objects ( makeRt, RToken, Token(..) )
 import Compiler.Parser.Factory ( (<->), (<+>), liftStashParser, parseExpression, ParserState )
 
 {-|
@@ -18,16 +18,21 @@ A token validation function for a domain specification in Runic
 source. This validator captures the domain bounds and name for
 further processing.
 -}
-validateDomain :: Token -> [Token] -> Either String (ParserState Token)
-validateDomain = parseExpression $ liftStashParser 
-    (Expr "") <-> On <-> LBrack <+> Expr "" <-> RBrack
+validateDomain :: RToken -> [RToken] -> Either String (ParserState RToken)
+validateDomain = parseExpression $ 
+    liftStashParser (makeRt $ Expr "") 
+    <-> makeRt On 
+    <-> makeRt LBrack 
+    <+> makeRt (Expr "") 
+    <-> makeRt RBrack
 
 {-|
 A token validation function for a guess statement in Runic source. 
 This validator captures the guess expression and name for further 
 processing.
 -}
-validateGuess :: Token -> [Token] -> Either String (ParserState Token)
-validateGuess = parseExpression $ liftStashParser
-    (Expr "") <-> For <+> Expr ""
- 
+validateGuess :: RToken -> [RToken] -> Either String (ParserState RToken)
+validateGuess = parseExpression $ 
+    liftStashParser (makeRt $ Expr "") 
+    <-> makeRt For 
+    <+> makeRt (Expr "")

@@ -14,18 +14,35 @@ module Compiler.Parser.Factory
     , liftStashParser
     , liftOptParser
     , parseExpression
+    , tElem
+    , tEqual
     , ParserState(..)
     , ParserStateTrans
+    , TokenEq
     ) where
 
 import Control.Monad.State.Lazy ( execStateT, get, lift, put, StateT )
+
+{-|
+A class for tokens to be used with the Runic parser factory. This 
+class requires a definition for `tEqual` and provides a derived 
+implementation for `tElem`.
+-}
+class TokenEq a where
+    tEqual :: a -> a -> Bool
+    
+-- | Similar to `elem` but uses TokenEq's equality operator. 
+tElem :: (Foldable t, TokenEq a) => a -> t a -> Bool
+tElem needle = foldl findNeedle False
+    where 
+        findNeedle wasFound tok = needle `tEqual` tok || wasFound
 
 -- | Type alias for a StateT monad used in the Runic parser factory.
 type ParserStateTrans a = (StateT (ParserState a) (Either String) ())
 
 -- | ParserState lastToken [stash] [remaining]
 data ParserState a = ParserState a [a] [a]
-    deriving (Eq, Show)
+    deriving (Eq, Ord, Show)
 
 -- | Pops a token from the remaining tokens stack.
 pop :: StateT (ParserState a) (Either String) a
@@ -65,10 +82,10 @@ getLastToken = do
 Creates a capture function that ignores a whitelisted token, and 
 fails on any other token. An empty whitelist allows any token.
 -}
-validator :: Eq a => [a] -> (a -> a -> String) -> ParserStateTrans a
+validator :: TokenEq a => [a] -> (a -> a -> String) -> ParserStateTrans a
 validator whitelist errMsg = do
     x <- pop
-    if x `elem` whitelist || null whitelist
+    if x `tElem` whitelist || null whitelist
         then 
             setLastToken x
         else do 
@@ -79,10 +96,10 @@ validator whitelist errMsg = do
 Creates a capture function that stashes a whitelisted token, and 
 fails on any other token. An empty whitelist allows any token.
 -}
-stashValidator :: Eq a => [a] -> (a -> a -> String) -> ParserStateTrans a
+stashValidator :: TokenEq a => [a] -> (a -> a -> String) -> ParserStateTrans a
 stashValidator whitelist errMsg = do
     x <- pop
-    if x `elem` whitelist || null whitelist
+    if x `tElem` whitelist || null whitelist
         then do 
             stash x 
             setLastToken x
@@ -96,10 +113,10 @@ does nothing if the token is not the expected value.
 This may be useful if a token may not be present in a phrase that is 
 still "grammatically correct".
 -}
-optionValidator :: Eq a => [a] -> ParserStateTrans a
+optionValidator :: TokenEq a => [a] -> ParserStateTrans a
 optionValidator whitelist = do
     x <- pop
-    if x `elem` whitelist || null whitelist
+    if x `tElem` whitelist || null whitelist
         then do 
             setLastToken x
         else do 
@@ -141,28 +158,28 @@ parseManyErrorMsg expectTok prevTok currentTok = "expected one of "
 Lifts a token into a token validator that ignores the token upon 
 validation.
 -}
-liftParser :: (Eq a, Show a) => a -> ParserStateTrans a
+liftParser :: (TokenEq a, Show a) => a -> ParserStateTrans a
 liftParser tok = validator [tok] (parseErrorMsg tok)
 
 {-| 
 Lifts a token into a token validator that stashes the token upon 
 validation.
 -}
-liftStashParser :: (Eq a, Show a) => a -> ParserStateTrans a
+liftStashParser :: (TokenEq a, Show a) => a -> ParserStateTrans a
 liftStashParser tok = stashValidator [tok] (parseErrorMsg tok)
 
 {-| 
 Lifts a token into a token validator that ignores the token upon
 validation or proceeds to the next step.
 -}
-liftOptParser :: Eq a => a -> ParserStateTrans a
+liftOptParser :: TokenEq a => a -> ParserStateTrans a
 liftOptParser tok = optionValidator [tok]
 
 {-| 
 The pass-through validation operator for creating a token validator 
 that ignores the token on validation or returns an error message.
 -}
-(<->) :: (Eq a, Show a) => ParserStateTrans a -> a -> ParserStateTrans a
+(<->) :: (TokenEq a, Show a) => ParserStateTrans a -> a -> ParserStateTrans a
 prevTokenValid <-> nextToken = prevTokenValid 
     >> validator [nextToken] (parseErrorMsg nextToken)
 
@@ -170,7 +187,7 @@ prevTokenValid <-> nextToken = prevTokenValid
 The capture validation operator for creating a token validator that 
 captures the token on validation or returns an error message.
 -}
-(<+>) :: (Eq a, Show a) => ParserStateTrans a -> a -> ParserStateTrans a
+(<+>) :: (TokenEq a, Show a) => ParserStateTrans a -> a -> ParserStateTrans a
 prevTokenValid <+> nextToken = prevTokenValid 
     >> stashValidator [nextToken] (parseErrorMsg nextToken)
 
@@ -179,7 +196,7 @@ The optional validation operator for creating a token validator that
 ignores the token on validation or leaves the proceeds to the next 
 step in the validation process.
 -}
-(<?>) :: Eq a => ParserStateTrans a -> a -> ParserStateTrans a
+(<?>) :: TokenEq a => ParserStateTrans a -> a -> ParserStateTrans a
 prevTokenValid <?> nextToken = prevTokenValid 
     >> optionValidator [nextToken]
 
@@ -188,7 +205,7 @@ The pass-through list validation operator for creating a token
 validator that ignores the token on validation or returns an error 
 message.
 -}
-(|-|) :: (Eq a, Show a) => ParserStateTrans a -> [a] -> ParserStateTrans a
+(|-|) :: (TokenEq a, Show a) => ParserStateTrans a -> [a] -> ParserStateTrans a
 prevTokenValid |-| nextTokens = prevTokenValid 
     >> validator nextTokens (parseManyErrorMsg nextTokens)
 
@@ -196,7 +213,7 @@ prevTokenValid |-| nextTokens = prevTokenValid
 The capture list validation operator for creating a token validator 
 that captures the token on validation or returns an error message.
 -}
-(|+|) :: (Eq a, Show a) => ParserStateTrans a -> [a] -> ParserStateTrans a
+(|+|) :: (TokenEq a, Show a) => ParserStateTrans a -> [a] -> ParserStateTrans a
 prevTokenValid |+| nextTokens = prevTokenValid 
     >> stashValidator nextTokens (parseManyErrorMsg nextTokens)
 
@@ -205,6 +222,6 @@ The optional list validation operator for creating a token validator
 that ignores the token on validation or proceeds to the next step in 
 the validation process.
 -}
-(|?|) :: Eq a => ParserStateTrans a -> [a] -> ParserStateTrans a
+(|?|) :: TokenEq a => ParserStateTrans a -> [a] -> ParserStateTrans a
 prevTokenValid |?| nextTokens = prevTokenValid 
     >> optionValidator nextTokens

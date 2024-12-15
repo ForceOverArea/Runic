@@ -5,3 +5,6 @@
 # Prototyping files
 *.py 
 *.drawio.*
+
+# VSCode Counter
+.VSCodeCounter

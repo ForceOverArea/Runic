@@ -28,7 +28,9 @@ library
       Compiler.Parser.Factory
       Compiler.Parser.Grammar
       Compiler.Parser.Objects
+      Compiler.Parser.Shunting
       Compiler.Parser.TopLevel
+      Compiler.Parser.Types
       Compiler.Preprocess
       Solver.Constrainer
   other-modules:

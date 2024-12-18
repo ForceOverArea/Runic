@@ -2,6 +2,7 @@
 Defines the type hierarchy for data available in each superstate that 
 the compiler may be in at any given point in time.
 -}
+{-# LANGUAGE InstanceSigs #-}
 module Compiler.Parser.Types 
     ( CtxMap
     ) where
@@ -18,10 +19,37 @@ of equations.
 -}
 data CtxItem
     = CtxGuessDmn Double Double Double
-    | CtxConst Double
-    -- Todo: add this functionality later
-    -- | CtxFunction Text (Int -> [Double] -> Double)
-    deriving (Eq, Show)
+    | CtxConst Text Double
+    | CtxFunction Text Int (Int -> [Double] -> Double)
+
+instance Eq CtxItem where
+    (==) :: CtxItem -> CtxItem -> Bool
+    (CtxGuessDmn a b c) == (CtxGuessDmn d e f) = 
+        (a == d) && (b == e) && (c == f)
+    (CtxConst namea a) == (CtxConst nameb b) = 
+        (namea == nameb) && (a == b)
+    (CtxFunction namea na _) == (CtxFunction nameb nb _) = 
+        (na == nb) && (namea == nameb)
+    _ == _ = False
+
+instance Show CtxItem where
+    show :: CtxItem -> String
+    show (CtxFunction name n _) = "function " 
+        ++ show name 
+        ++ " = double[" 
+        ++ show n 
+        ++ "] -> double"
+    show (CtxConst name a) = "constant " 
+        ++ show name 
+        ++ " = " 
+        ++ show a
+    show (CtxGuessDmn a b c) = "guess: " 
+        ++ show a 
+        ++ ", domain: [" 
+        ++ show b 
+        ++ ", " 
+        ++ show c 
+        ++ "]"
 
 {-| 
 A type alias for a map of names (Text) to their corresponding 

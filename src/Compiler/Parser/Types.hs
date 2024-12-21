@@ -4,7 +4,8 @@ the compiler may be in at any given point in time.
 -}
 {-# LANGUAGE InstanceSigs #-}
 module Compiler.Parser.Types 
-    ( CtxMap
+    ( CtxItem(..)
+    , CtxMap
     ) where
 
 import Prelude hiding ( lookup )
@@ -18,7 +19,7 @@ An item that should be stashed as part of the context to a system
 of equations.
 -}
 data CtxItem
-    = CtxGuessDmn Double Double Double
+    = CtxGuessDmn Double Double Double Double
     | CtxConst Text Double
     | CtxFunction Text Int (Int -> [Double] -> Double)
 

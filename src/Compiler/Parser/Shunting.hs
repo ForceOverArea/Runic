@@ -4,12 +4,12 @@ module Compiler.Parser.Shunting
     (
     ) where
 
-import Prelude hiding ( words ) 
-import Compiler.Parser.Types ( CtxMap )
+import Prelude hiding ( lookup, words ) 
+import Compiler.Parser.Types ( CtxMap, CtxItem(..) )
 import Control.Monad ( when )
 import Control.Monad.State.Lazy ( evalStateT, get, put, StateT )
 import Data.List as L ( uncons )
-import Data.Map ( member )
+import Data.Map ( lookup, member )
 import Data.Maybe ( fromMaybe )
 import Data.Text as T ( cons, pack, uncons, unpack, words, Text )
 import Text.Read ( readMaybe )
@@ -32,18 +32,6 @@ included.
 -}
 type ShYdStateT t = StateT (ShuntingYard t)
 
-inputQueueNotEmpty :: (Eq t, Monad m) => ShYdStateT t m Bool
-inputQueueNotEmpty = do
-    (_, i, _, _) <- get
-    return (i /= [])
-
--- | Pops a token from the input queue 
-popInputQueue :: Monad m => ShYdStateT t m t
-popInputQueue = do
-    (ctx, i, s, q) <- get
-    put (ctx, tail i, s, q)
-    return (head i)
-
 tryPopInputQueue :: Monad m => ShYdStateT t m (Maybe t)
 tryPopInputQueue = do
     (ctx, i, s, q) <- get
@@ -53,24 +41,12 @@ tryPopInputQueue = do
             put (ctx, i, xs, q)
             return (Just x)
 
-stackNotEmpty :: (Eq t, Monad m) => ShYdStateT t m Bool
-stackNotEmpty = do
-    (_, _, s, _) <- get
-    return (s /= [])
-
 -- | Pushes a token onto the stack
 pushStack :: Monad m => t -> ShYdStateT t m ()
 pushStack tok = do
     (ctx, i, s, q) <- get
     put (ctx, i, tok:s, q)
     return ()
-
--- | Pops a token from the top of the operator stack 
-popStack :: Monad m => ShYdStateT t m t
-popStack = do
-    (ctx, i, s, q) <- get
-    put (ctx, i, tail s, q)
-    return (head s)
 
 tryPopStack :: Monad m => ShYdStateT t m (Maybe t)
 tryPopStack = do
@@ -93,10 +69,10 @@ getQueue = do
     (_, _, _, q) <- get
     return q
 
-getCtxItem :: Text -> Monad m => ShYdStateT t m (Maybe CtxItem)
+getCtxItem :: Monad m => Text -> ShYdStateT t m (Maybe CtxItem)
 getCtxItem name = do
     (ctx, _, _, _) <- get
-    return lookup name ctx
+    return (lookup name ctx)
 
 -- | The list of characters recognized as operators in an expression 
 operators :: String
@@ -166,63 +142,81 @@ process :: Monad m => ShYdStateT Token m (Either String [Token])
 process = do
     iToken <- tryPopInputQueue
     case iToken of
-        Just (Num x) -> pushQueue (Num x) >> process
-        Just (Op x) -> handleOp (Op x) >> process
-        Just Comma -> handleComma >> process
-        Just LParen -> pushStack LParen >> process
-        Just (CtxVal name) -> handleCtxValue name >> process
-        Just RParen -> do
-            foundRParen <- handleRParen
-            if not foundRParen 
-                then return (Left "found unclosed parenthesis while parsing expression")
-                else process
+        Just y -> 
+            handleTok y
+            process
         Nothing -> do
             sToken <- tryPopStack
             case sToken of
                 Just x -> pushQueue x >> process
                 Nothing -> Right <$> getQueue
 
+handleTok :: Token -> ShYdStateT Token m (Either String [Token])
+handleTok y = do 
+    case y of
+        (Num x) -> pushQueue (Num x)
+        (Op x) -> handleOp (Op x)
+        (CtxVal name) -> handleCtxValue name
+        Comma -> handleComma
+        LParen -> pushStack LParen
+        RParen -> do
+            foundRParen <- handleRParen
+            when not foundRParen 
+                return (Left "found unclosed parenthesis while parsing expression")
+
 handleOp :: Monad m => Token -> ShYdStateT Token m ()
 handleOp o1 = do
-    stackPresent <- stackNotEmpty
-    when stackPresent $ do
-        o2 <- popStack
-        if (precedence o2 > precedence o1) || (precedence o2 == precedence o1 && isLeftAssoc o1)
-            then do
-                pushQueue o2
-                handleOp o1
-            else
-                pushStack o1
+    x <- tryPopStack
+    case x of 
+        Nothing -> return ()
+        Just o2 -> 
+            if (precedence o2 > precedence o1) 
+                || (precedence o2 == precedence o1 && isLeftAssoc o1)
+                then do
+                    pushQueue o2
+                    handleOp o1
+                else
+                    pushStack o1
+
+handleCtxValue :: Monad m => Text -> ShYdStateT Token m ()
+handleCtxValue name = do
+    tok <- (getCtxItem . pack) name
+    case tok of 
+        (CtxFunction {}) -> pushStack tok
+        (CtxGuessDmn {}) -> pushQueue tok
+        (CtxConst x) -> pushQueue (Num x)
 
 handleComma :: Monad m => ShYdStateT Token m ()
 handleComma = do
-    stackPresent <- stackNotEmpty
-    when stackPresent $ do
-        o <- popStack
-        when (o /= LParen) $ do
-            pushQueue o
+    o <- tryPopStack
+    case o of
+        Nothing -> return ()
+        Just LParen -> return ()
+        Just x -> do
+            pushQueue x
             handleComma
-
+ 
 handleRParen :: Monad m => ShYdStateT Token m Bool
 handleRParen = do
     tok <- tryPopStack
     case tok of
         Nothing -> return False
-        Just LParen -> case tryPopStack of
-            Just (CtxVal name) -> do
-                tok2 <- getCtxItem name
-                case tok2 of
-                    Just Func -> 
-            Nothing -> return True
-        else do
-            t <- popStack
-            if t == LParen
-                then do
-                    stackPresent <- stackNotEmpty
-                    when stackPresent $ do
-                        t2 <- popStack
-                        if t2 
-                        
-                else do
-                    pushQueue t
-                    handleRParen
+        Just LParen -> tryPopStack >>= handlePossibleFunction 
+        Just x -> do
+            pushQueue x
+            handleRParen
+            
+handlePossibleFunction :: Monad m => Maybe Token -> ShYdStateT Token m Bool
+handlePossibleFunction maybeTok = 
+    case maybeTok of
+        Nothing -> return True
+        Just (CtxVal name) -> do
+            tok <- (getCtxItem . pack) name
+            case tok of
+                Just (CtxFunction {}) -> pushQueue (CtxVal name)
+                Just _ -> pushStack (CtxVal name)
+                Nothing -> return ()
+            return True
+        Just tok -> do
+            pushStack tok
+            return True

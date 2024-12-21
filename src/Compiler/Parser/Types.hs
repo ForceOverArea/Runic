@@ -25,8 +25,8 @@ data CtxItem
 
 instance Eq CtxItem where
     (==) :: CtxItem -> CtxItem -> Bool
-    (CtxGuessDmn a b c) == (CtxGuessDmn d e f) = 
-        (a == d) && (b == e) && (c == f)
+    (CtxGuessDmn v1 a b c) == (CtxGuessDmn v2 d e f) = 
+        (v1 == v2) && (a == d) && (b == e) && (c == f)
     (CtxConst namea a) == (CtxConst nameb b) = 
         (namea == nameb) && (a == b)
     (CtxFunction namea na _) == (CtxFunction nameb nb _) = 
@@ -44,13 +44,14 @@ instance Show CtxItem where
         ++ show name 
         ++ " = " 
         ++ show a
-    show (CtxGuessDmn a b c) = "guess: " 
+    show (CtxGuessDmn v a b c) = show v
+        ++ " (guess: " 
         ++ show a 
         ++ ", domain: [" 
         ++ show b 
         ++ ", " 
         ++ show c 
-        ++ "]"
+        ++ "])"
 
 {-| 
 A type alias for a map of names (Text) to their corresponding 

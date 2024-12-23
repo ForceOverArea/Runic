@@ -1,15 +1,17 @@
+{-# LANGUAGE InstanceSigs #-}
+
 {-
 Defines the type hierarchy for data available in each superstate that 
 the compiler may be in at any given point in time.
 -}
-{-# LANGUAGE InstanceSigs #-}
-module Compiler.Parser.Types 
+
+module Compiler.Evaluator.Types 
     ( CtxItem(..)
     , CtxMap
     ) where
 
 import Prelude hiding ( lookup )
-import Compiler.Parser.Objects ( RToken )
+import Compiler.Parser.Keywords ( RToken )
 import Control.Monad.State.Lazy ( get, lift, put, StateT )
 import Data.Map ( insert, lookup, Map )
 import Data.Text ( Text )

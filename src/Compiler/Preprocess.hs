@@ -5,7 +5,7 @@ module Compiler.Preprocess
     ) where
 
 import Prelude hiding ( lookup, words )
-import Compiler.Parser.Objects ( tokenMapping, RunicToken(..), Token(..) )
+import Compiler.Parser.Keywords ( tokenMapping, RunicToken(..), Token(..) )
 import Control.Arrow ( (>>>), (&&&), arr, first )
 import Data.Map ( fromList, keys, lookup, Map )
 import Data.Text ( replace, split, words, Text )
@@ -13,6 +13,15 @@ import Data.Text ( replace, split, words, Text )
 -- | Enumerates lines of text with their line numbers starting at 1
 getLineNumbers :: [Text] -> [(Int, Text)]
 getLineNumbers lns = zip [1..length lns + 1] lns
+
+{-|
+Replaces keywords that are purely shorthand for things already
+expressible in Runic source code.
+-}
+substSimpleKeywords :: Text -> Text
+substSimpleKeywords = replace "negative" "on [-inf, 0]" 
+    . replace "positive" "on [0, inf]"
+
 
 {-|
 Looks for all tokens defined in `tokenMapping` (i.e. all legal 

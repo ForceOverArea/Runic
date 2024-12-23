@@ -1,7 +1,7 @@
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Compiler.Parser.Objects
+module Compiler.Parser.Keywords
     ( getText
     , keywords
     , makeRt

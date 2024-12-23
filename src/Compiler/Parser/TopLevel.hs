@@ -4,22 +4,8 @@ module Compiler.Parser.TopLevel
     (
     ) where
 
-{-| 
-A type alias for a map of names (Text) to their corresponding 
-Runic-relevant data.
--}   
-type CtxMap = Map Text CtxItem
-
-{-| 
-An item that should be stashed as part of the context to a system
-of equations.
--}   
-data CtxItem 
-    = CtxGuessDmn Double Double Double
-    | CtxConst Double
-    -- Todo: add this functionality later
-    -- | CtxFunction Text (Int -> [Double] -> Double)
-    deriving (Eq, Show)
+import Compiler.Evaluator.Types ( CtxMap, CtxItem(..) )
+import Data.Text ( Text )
 
 {-|
 Tries to add an item to the given global context state, returning an

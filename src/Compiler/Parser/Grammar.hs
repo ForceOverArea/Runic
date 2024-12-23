@@ -10,7 +10,7 @@ module Compiler.Parser.Grammar
     ) where
 
 import Prelude hiding ( lookup )
-import Compiler.Parser.Objects ( makeRt, RToken, Token(..) )
+import Compiler.Parser.Keywords ( makeRt, RToken, Token(..) )
 import Compiler.Parser.Factory ( (<->), (<+>), liftStashParser, parseExpression, ParserState )
 
 {-|

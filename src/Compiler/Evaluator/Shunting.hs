@@ -1,11 +1,13 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Compiler.Parser.Shunting
-    (
+module Compiler.Evaluator.Shunting
+    ( primitiveTokens
+    , rpnify
+    , tokenize
     ) where
 
 import Prelude hiding ( lookup, words ) 
-import Compiler.Parser.Types ( CtxMap, CtxItem(..) )
+import Compiler.Evaluator.Types ( CtxMap, CtxItem(..) )
 import Control.Monad ( when )
 import Control.Monad.State.Lazy ( evalStateT, get, put, StateT )
 import Data.List as L ( uncons )
@@ -17,7 +19,7 @@ import Text.Read ( readMaybe )
 data Token
     = Num Double
     | Op Char
-    | CtxVal String
+    | CtxVal Text
     | Comma
     | LParen
     | RParen
@@ -34,7 +36,7 @@ type ShYdStateT t = StateT (ShuntingYard t)
 
 tryPopInputQueue :: Monad m => ShYdStateT t m (Maybe t)
 tryPopInputQueue = do
-    (ctx, i, s, q) <- get
+    (ctx, i, _, q) <- get
     case L.uncons i of
         Nothing -> return Nothing
         Just (x, xs) -> do
@@ -118,7 +120,7 @@ punctuate tokens =
     where
         (x, xs) = fromMaybe (' ', "") (T.uncons tokens)
 
--- | 
+-- | Converts a string to a token (TODO: remove String from this file)
 tokenize :: CtxMap -> String -> Either String Token
 tokenize _ "(" = Right LParen
 tokenize _ ")" = Right RParen
@@ -126,7 +128,7 @@ tokenize _ "," = Right Comma
 tokenize _ [] = Left "cannot tokenize an empty string"
 tokenize ctx (x:xs)
     | x `elem` operators = Right $ Op x
-    | member (pack $ x:xs) ctx = Right (CtxVal $ x:xs)
+    | member (pack $ x:xs) ctx = Right (CtxVal . pack $ x:xs)
     | otherwise = case readMaybe (x:xs) of
         Just val -> Right $ Num val
         Nothing -> Left $ "failed to tokenize unknown value: " ++ (x:xs)
@@ -136,55 +138,55 @@ tokenizeExpr ctx = mapM (tokenize ctx . unpack) . words . punctuate
 
 -- | Converts a token stream from infix notation to postfix notation.
 rpnify :: Monad m => CtxMap -> [Token] -> m (Either String [Token])
-rpnify ctx tokens = evalStateT process (ctx, tokens, [], [])
+rpnify ctx tokens = evalStateT procSy (ctx, tokens, [], [])
 
-process :: Monad m => ShYdStateT Token m (Either String [Token])
-process = do
+{-| 
+### Process Shunting Yard
+The internal control flow of the shunting yard algorithm.
+-}
+procSy :: Monad m => ShYdStateT Token m (Either String [Token])
+procSy = do
     iToken <- tryPopInputQueue
     case iToken of
-        Just y -> 
-            handleTok y
-            process
+        Just (Num x) -> Right <$> pushQueue (Num x) >> procSy
+        Just (Op x) -> handleOp (Op x) >> procSy
+        Just (CtxVal name) -> handleCtxValue name >> procSy
+        Just Comma -> handleComma >> procSy
+        Just LParen -> pushStack LParen >> procSy
+        Just RParen -> do
+            foundRParen <- handleRParen
+            if not foundRParen 
+                then return (Left "found unclosed parenthesis while parsing expression")
+                else procSy
         Nothing -> do
             sToken <- tryPopStack
             case sToken of
-                Just x -> pushQueue x >> process
+                Just x -> pushQueue x >> procSy
                 Nothing -> Right <$> getQueue
-
-handleTok :: Token -> ShYdStateT Token m (Either String [Token])
-handleTok y = do 
-    case y of
-        (Num x) -> pushQueue (Num x)
-        (Op x) -> handleOp (Op x)
-        (CtxVal name) -> handleCtxValue name
-        Comma -> handleComma
-        LParen -> pushStack LParen
-        RParen -> do
-            foundRParen <- handleRParen
-            when not foundRParen 
-                return (Left "found unclosed parenthesis while parsing expression")
-
+      
 handleOp :: Monad m => Token -> ShYdStateT Token m ()
 handleOp o1 = do
     x <- tryPopStack
     case x of 
         Nothing -> return ()
-        Just o2 -> 
-            if (precedence o2 > precedence o1) 
-                || (precedence o2 == precedence o1 && isLeftAssoc o1)
+        Just o2 -> if (precedence o2 > precedence o1) 
+            || (precedence o2 == precedence o1 && isLeftAssoc o1)
                 then do
                     pushQueue o2
                     handleOp o1
                 else
                     pushStack o1
 
-handleCtxValue :: Monad m => Text -> ShYdStateT Token m ()
+handleCtxValue :: Monad m => Text -> ShYdStateT Token m Bool
 handleCtxValue name = do
-    tok <- (getCtxItem . pack) name
-    case tok of 
-        (CtxFunction {}) -> pushStack tok
-        (CtxGuessDmn {}) -> pushQueue tok
-        (CtxConst x) -> pushQueue (Num x)
+    item <- getCtxItem name
+    case item of 
+        Nothing -> return False
+        Just x -> do 
+            case x of
+                (CtxFunction {}) -> pushStack (CtxVal name)
+                _ -> pushQueue (CtxVal name)
+            return True
 
 handleComma :: Monad m => ShYdStateT Token m ()
 handleComma = do
@@ -211,7 +213,7 @@ handlePossibleFunction maybeTok =
     case maybeTok of
         Nothing -> return True
         Just (CtxVal name) -> do
-            tok <- (getCtxItem . pack) name
+            tok <- getCtxItem name
             case tok of
                 Just (CtxFunction {}) -> pushQueue (CtxVal name)
                 Just _ -> pushStack (CtxVal name)
@@ -220,3 +222,40 @@ handlePossibleFunction maybeTok =
         Just tok -> do
             pushStack tok
             return True
+
+postfixEval :: Monad m => CtxMap -> [Token] -> m (Either String Double)
+postfixEval ctx tokens = evalStateT procPf (ctx, tokens, [], [])
+
+{-| 
+### Process PostFix
+Evaluates the postfix representation of an expression returned by 
+the `rpnify` function.
+-}
+procPf :: Monad m => ShYdStateT Token m (Either String Double)
+procPf = do
+    iToken <- tryPopInputQueue
+    case iToken of
+        Just (Num x) -> pushStack (Num x) >> procPf
+        Just (Op x) -> handleOpPf x >> procPf
+        Just (CtxVal name) -> handleCtxValuePf name >> process
+
+{-|
+
+-}
+handleOpPf :: Monad m => Char -> ShYdStateT Token m ()
+handleOpPf x = do
+    o1 <- tryPopStack
+    o2 <- tryPopStack
+    pushStack (getOperatorAsFunc x o1 o2)
+
+{-|
+
+-}
+handleCtxValuePf :: Monad m => Text -> ShYdStateT Token m Bool
+handleCtxValuePf name = do
+    possItem <- getCtxItem name
+    case possItem of
+        Nothing -> return False
+        Just (CtxGuessDmn val guess mn mx) -> 
+        Just (CtxFunction name argc f) ->
+        Just (CtxConst name val) ->

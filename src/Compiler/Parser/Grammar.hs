@@ -14,9 +14,9 @@ import Compiler.Parser.Keywords ( makeRt, RToken, Token(..) )
 import Compiler.Parser.Factory ( (<->), (<+>), liftStashParser, parseExpression, ParserState )
 
 {-|
-A token validation function for a domain specification in Runic 
-source. This validator captures the domain bounds and name for
-further processing.
+    A token validation function for a domain specification in Runic 
+    source. This validator captures the domain bounds and name for
+    further processing.
 -}
 validateDomain :: RToken -> [RToken] -> Either String (ParserState RToken)
 validateDomain = parseExpression $ 

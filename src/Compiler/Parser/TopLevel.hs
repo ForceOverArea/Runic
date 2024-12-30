@@ -4,14 +4,14 @@ module Compiler.Parser.TopLevel
     (
     ) where
 
-import Compiler.Evaluator.Types ( CtxMap, CtxItem(..) )
+import Compiler.Evaluator.Internal ( Context, CtxItem(..) )
 import Data.Text ( Text )
 
 {-|
 Tries to add an item to the given global context state, returning an
 error message if the given name collides with an existing item.
 -}
-tryAddName :: CtxMap -> Text -> CtxItem -> Either String CtxMap
+tryAddName :: Context -> Text -> CtxItem -> Either String Context
 tryAddName ctx name newItem = case lookup name ctx of
     Just oldItem -> Left $ itemNameCollisionError name oldItem
     Nothing -> Right $ insert name newItem ctx
@@ -23,16 +23,16 @@ stream.
 -} 
 itemNameCollisionError :: Text -> CtxItem -> String
 itemNameCollisionError name item = case item of
-    CtxGuessDmn guess mn mx -> "name collision: " 
-        ++ unpack name
-        ++ " is a guess/domain hint with a guess of " 
+    Function n f -> "name collision: " 
+        ++ show name
+        ++ " is a function with the signature: " 
         ++ show guess
         ++ " and a domain of [" 
         ++ show mn 
         ++ "," 
         ++ show mx 
         ++ "]"
-    CtxConst val -> "name collision: '"
+    Const val -> "name collision: '"
         ++ unpack name
         ++ "' is a constant with a value of "
         ++ show val           

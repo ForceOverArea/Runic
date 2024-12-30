@@ -24,9 +24,9 @@ module Compiler.Parser.Factory
 import Control.Monad.State.Lazy ( execStateT, get, lift, put, StateT )
 
 {-|
-A class for tokens to be used with the Runic parser factory. This 
-class requires a definition for `tEqual` and provides a derived 
-implementation for `tElem`.
+    A class for tokens to be used with the Runic parser factory. This 
+    class requires a definition for `tEqual` and provides a derived 
+    implementation for `tElem`.
 -}
 class TokenEq a where
     tEqual :: a -> a -> Bool
@@ -79,8 +79,8 @@ getLastToken = do
     return lt
 
 {-| 
-Creates a capture function that ignores a whitelisted token, and 
-fails on any other token. An empty whitelist allows any token.
+    Creates a capture function that ignores a whitelisted token, and 
+    fails on any other token. An empty whitelist allows any token.
 -}
 validator :: TokenEq a => [a] -> (a -> a -> String) -> ParserStateTrans a
 validator whitelist errMsg = do
@@ -93,8 +93,8 @@ validator whitelist errMsg = do
             lift (Left $ errMsg lt x)
 
 {-| 
-Creates a capture function that stashes a whitelisted token, and 
-fails on any other token. An empty whitelist allows any token.
+    Creates a capture function that stashes a whitelisted token, and 
+    fails on any other token. An empty whitelist allows any token.
 -}
 stashValidator :: TokenEq a => [a] -> (a -> a -> String) -> ParserStateTrans a
 stashValidator whitelist errMsg = do
@@ -108,10 +108,10 @@ stashValidator whitelist errMsg = do
             lift (Left $ errMsg lt x)
 
 {-| 
-Creates a capture function that tries to validate a token, but 
-does nothing if the token is not the expected value.
-This may be useful if a token may not be present in a phrase that is 
-still "grammatically correct".
+    Creates a capture function that tries to validate a token, but 
+    does nothing if the token is not the expected value.
+    This may be useful if a token may not be present in a phrase that 
+    is still "grammatically correct".
 -}
 optionValidator :: TokenEq a => [a] -> ParserStateTrans a
 optionValidator whitelist = do

@@ -30,10 +30,8 @@ library
       Compiler.Evaluator.Postfix
       Compiler.Evaluator.Shunting
       Compiler.Parser
-      Compiler.Parser.Factory
-      Compiler.Parser.Grammar
-      Compiler.Parser.Keywords
-      Compiler.Parser.TopLevel
+      Compiler.Parser.Internal
+      Compiler.Parser.RegexBuilder
       Compiler.Preprocess
       Solver.Constrainer
   other-modules:

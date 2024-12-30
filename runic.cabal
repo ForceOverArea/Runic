@@ -25,8 +25,11 @@ source-repository head
 
 library
   exposed-modules:
+      Compiler.Evaluator
+      Compiler.Evaluator.Internal
+      Compiler.Evaluator.Postfix
       Compiler.Evaluator.Shunting
-      Compiler.Evaluator.Types
+      Compiler.Parser
       Compiler.Parser.Factory
       Compiler.Parser.Grammar
       Compiler.Parser.Keywords

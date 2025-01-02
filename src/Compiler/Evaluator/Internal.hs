@@ -1,3 +1,4 @@
+{-# LANGUAGE Safe #-}
 {-# LANGUAGE OverloadedStrings #-}
 module Compiler.Evaluator.Internal
     ( getCtxItem
@@ -23,8 +24,9 @@ module Compiler.Evaluator.Internal
     , Token(..)
     ) where
 
-import Control.Monad.Reader ( asks, runReaderT, ReaderT )
-import Control.Monad.State.Lazy ( evalStateT, get, put, lift, StateT )
+import Control.Monad.RWS ( evalRWST, RWST )
+import Control.Monad.Reader ( asks )
+import Control.Monad.State.Lazy ( get, put, lift )
 import Data.List as L ( uncons )
 import Data.Map as M ( (!), fromList, keys, lookup, member, Map )
 import Data.Maybe ( fromMaybe )
@@ -62,13 +64,14 @@ type Context = Map Text CtxItem
     Provides read-only access to a context for providing extended
     functionality in the shunting yard implementation.
 -}
-type ContextT = ReaderT Context
+-- type ContextT = ReaderT Context
 
 {-|
     Provides three separate stacks/queues required to implement a 
     traditional shunting yard algorithm
 -}
-type ShuntingYd = StateT ([Token], [Token], [Token]) (ContextT (Either String))
+-- type ShuntingYd = StateT ([Token], [Token], [Token]) (ContextT (Either String))
+type ShuntingYd = RWST Context () ([Token], [Token], [Token]) (Either String)
 
 {-|
     Type definition to parametrize the numeric type for the shunting yard
@@ -288,14 +291,14 @@ getCtxItem name = do
     Fetches an item from the provided read-only context.
 -}
 tryGetCtxItem :: Text -> ShuntingYd (Maybe CtxItem)
-tryGetCtxItem name = lift $ asks (M.lookup name)
+tryGetCtxItem name = asks (M.lookup name)
 
 {-|
     Changes the final result of the shunting yard to a `Left` 
     constructor value containing the given error message.
 -}
 returnError :: String -> ShuntingYd b
-returnError errMsg = lift . lift $ Left errMsg
+returnError errMsg = lift $ Left errMsg
 
 {-|
     Populates the Contextnd initial state for a `ShuntingYd` 
@@ -303,5 +306,4 @@ returnError errMsg = lift . lift $ Left errMsg
     yard has been evaluated.
 -}
 runShuntingYd :: ShuntingYd b -> Context -> [Token] -> Either String b 
-runShuntingYd md ctx tokens = flip runReaderT ctx 
-    $ evalStateT md (tokens, [], [])
+runShuntingYd md ctx tokens = fst <$> evalRWST md ctx (tokens, [], [])

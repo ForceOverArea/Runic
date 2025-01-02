@@ -5,9 +5,12 @@ module Compiler.Evaluator
 
 import Data.Map ( empty )
 import Data.Text ( Text )
-import Compiler.Evaluator.Internal ( tokenizeExpr, Context, SyNum )
+import Compiler.Evaluator.Internal ( tokenizeExpr, Context, SyNum, Token )
 import Compiler.Evaluator.Postfix ( pfeval )
 import Compiler.Evaluator.Shunting ( rpnify )
+
+compileExprWithCtx :: Text -> Maybe [Token]
+compileExprWithCtx = tokenizeExpr
 
 {-|
     Evaluates an expression with a given context map. 

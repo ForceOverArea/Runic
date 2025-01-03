@@ -1,3 +1,4 @@
+{-# LANGUAGE Safe #-}
 module Compiler.Evaluator.Postfix 
     ( pfeval
     ) where

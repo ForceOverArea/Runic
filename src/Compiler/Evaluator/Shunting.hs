@@ -1,3 +1,4 @@
+{-# LANGUAGE Safe #-}
 {-# LANGUAGE OverloadedStrings #-}
 module Compiler.Evaluator.Shunting 
     ( rpnify

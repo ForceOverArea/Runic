@@ -5,7 +5,7 @@ module Compiler.Preprocess
     ) where
 
 import Prelude hiding ( lookup, words )
-import Compiler.Internal ( tokenMapping, RunicKeyword(..), TokenTracker(..) )
+import Compiler.RunicParser.Types ( tokenMapping, RunicKeyword(..), TokenTracker(..) )
 import Control.Arrow ( (>>>), (&&&), arr, first )
 import Data.Map ( fromList, keys, lookup, Map )
 import Data.Text ( replace, split, words, Text )

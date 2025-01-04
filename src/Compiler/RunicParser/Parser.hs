@@ -11,7 +11,7 @@ module Compiler.RunicParser.Internal
 import Data.Map as M ( empty, insert, lookup )
 import Data.Text ( Text )
 import Data.List ( uncons )
-import Compiler.Internal ( RunicContext, RunicObject, Token )
+import Compiler.RunicParser.Types ( RunicContext, RunicObject, Token )
 import Control.Monad.Identity ( Identity(..) )
 import Control.Monad.Except ( runExceptT, throwError, ExceptT )
 import Control.Monad.RWS ( asks, execRWST, get, lift, put, RWST )

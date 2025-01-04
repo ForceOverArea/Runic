@@ -1,4 +1,4 @@
-module Compiler.Parser 
+module Compiler.RunicParser.Internal 
     ( addToContext
     , execRunicTopLevel
     , execRunicT

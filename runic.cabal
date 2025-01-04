@@ -29,10 +29,10 @@ library
       Compiler.Evaluator.Internal
       Compiler.Evaluator.Postfix
       Compiler.Evaluator.Shunting
-      Compiler.Parser
-      Compiler.Parser.Internal
-      Compiler.Parser.RegexBuilder
       Compiler.Preprocess
+      Compiler.RunicParser
+      Compiler.RunicParser.Parser
+      Compiler.RunicParser.Types
       Solver.Constrainer
   other-modules:
       Paths_runic

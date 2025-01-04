@@ -1,7 +1,7 @@
 {-# LANGUAGE Safe #-}
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE OverloadedStrings #-}
-module Compiler.Internal
+module Compiler.RunicParser.Types
     ( toShuntingYdContext
     , tokenMapping
     , RunicContext

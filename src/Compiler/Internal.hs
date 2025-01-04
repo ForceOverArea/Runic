@@ -4,6 +4,7 @@
 module Compiler.Internal
     ( toShuntingYdContext
     , tokenMapping
+    , RunicContext
     , RunicKeyword(..)
     , RunicObject(..)
     , Token
@@ -11,9 +12,22 @@ module Compiler.Internal
     ) where
 
 import Compiler.Evaluator.Internal as E ( Context, CtxItem(..), SyNum )
-import Compiler.Parser.Internal ( (=+=), TokenEq )
 import Data.Map as M ( fromList, map, Map )
 import Data.Text ( Text )
+
+{-|
+    A class for tokens that should have a different definition of 
+    equality than the derivable definition. (e.g. RunicKeyword's 
+    Expr value should be identifiable on the basis of whether it is
+    an expr.)
+-}
+class TokenEq a where 
+    {-|
+        The token equality operator for denoting that the variety of 
+        a token is equal to that of another. (e.g. an Expr "a" =+= an
+        Expr "b" yields True.)
+    -}
+    (=+=) :: a -> a -> Bool
 
 {-|
     A type alias for parametrizing what type of numeric value Runic 
@@ -83,6 +97,10 @@ data RunicObject
     -- | # Args, Function
     | RnFunction Int ([RunicNum] -> RunicNum)
 
+{-|
+    A type alias for a Map Text RunicObject aka the context at the 
+    local and global levels used by the Runic compiler.
+-}
 type RunicContext = Map Text RunicObject
 
 {-|

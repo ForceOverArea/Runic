@@ -59,7 +59,8 @@ emptyStack :: ShuntingYd [Token]
 emptyStack = do
     possTok <- tryPopStack
     case possTok of
-        Just LParen -> returnError "Found an unmatched parenthesis while trying parsing infix expression"
+        Just LParen -> returnError "Found an unmatched parenthesis \
+            \while trying parsing infix expression"
         Just tok -> pushQueue tok >> emptyStack
         Nothing -> getQueue
 

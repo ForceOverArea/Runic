@@ -1,3 +1,4 @@
+{-# LANGUAGE Safe #-}
 module Compiler.RunicParser.Internal 
     ( addToContext
     , execRunicTopLevel
@@ -29,14 +30,25 @@ type RunicT m = RWST
     (ExceptT String m)      -- exception (possible error from grammatically incorrect phrase, i.e. mismatch)
 
 {-|
+    ### RunicTopLevel
+    
     The top-level of the Runic Parser state machine, containing an 
     empty outer context (reader value), the token stream to be parsed
     (half of state value), a global, mutable context (other half of 
-    state), and whose accompanying 'run' function produces a 
+    state), and whose accompanying @eval@ function produces an error 
+    message or a final, global context and list of equations to solve.
+
+    ### What is it for? 
+    
+    This information will be passed to the dependency graph builder to
+    create a solution to the system, which can be computed at a later 
+    step.
+
+    (Almost) fully expanded, this is the type: 
+    @RWST RunicContext [Text] (Token, [Token], RunicContext) ExceptT String Identity@
 -}
 type RunicTopLevel = RunicT Identity
--- (Almost) fully expanded, this is the type: 
--- RWST RunicContext [Text] (Token, [Token], RunicContext) ExceptT String Identity
+
 
 {-|
     The function responsible for kicking off the global process of 

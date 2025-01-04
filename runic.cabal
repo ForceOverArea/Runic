@@ -31,7 +31,7 @@ library
       Compiler.Evaluator.Shunting
       Compiler.Preprocess
       Compiler.RunicParser
-      Compiler.RunicParser.Parser
+      Compiler.RunicParser.Internal
       Compiler.RunicParser.Types
       Solver.Constrainer
   other-modules:

@@ -1,5 +1,5 @@
+{-# LANGUAGE Safe #-}
 {-# LANGUAGE OverloadedStrings #-}
-
 module Compiler.Preprocess 
     ( tokenizeSource
     ) where

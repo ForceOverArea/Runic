@@ -28,6 +28,12 @@ substSimpleKeywords
     keywords in the Runic language) and pads them with additional 
     whitespace. This guarantees they are delimited by spaces to 
     create a list of tokens in a block of text.
+
+    FIXME : we should probably delete this... we only want to really 
+    punctuate binary operators in math expressions since people like 
+    to have those smushed together. For a less sophisticated language
+    used only to drive a state machine, we don't really want to 
+    punctuate keywords embedded in a programmer's variable names.
 -}
 punctuate :: Text -> Text
 punctuate txt = foldr puncKw txt (keys tokenMapping)

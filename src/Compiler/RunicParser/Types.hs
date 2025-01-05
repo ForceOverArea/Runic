@@ -2,18 +2,22 @@
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE OverloadedStrings #-}
 module Compiler.RunicParser.Types
-    ( toShuntingYdContext
+    ( (=+=)
+    , getToken
+    , tElem
+    , toShuntingYdContext
     , tokenMapping
     , RunicContext
     , RunicKeyword(..)
     , RunicObject(..)
     , Token
+    , TokenEq
     , TokenTracker(..)
     ) where
 
 import Compiler.Evaluator.Internal as E ( Context, CtxItem(..), SyNum )
-import Data.Map as M ( fromList, map, Map )
-import Data.Text ( Text )
+import Data.Map as M ( (!), fromList, keys, map, Map )
+import Data.Text ( unpack, Text )
 
 {-|
     A class for tokens that should have a different definition of 
@@ -21,13 +25,18 @@ import Data.Text ( Text )
     Expr value should be identifiable on the basis of whether it is
     an expr.)
 -}
-class TokenEq a where 
+class TokenEq a where
     {-|
         The token equality operator for denoting that the variety of 
         a token is equal to that of another. (e.g. an Expr "a" =+= an
         Expr "b" yields True.)
     -}
     (=+=) :: a -> a -> Bool
+
+tElem :: (Foldable t, TokenEq a) => a -> t a -> Bool
+tElem needle = foldl findNeedle False
+    where 
+        findNeedle wasFound tok = needle =+= tok || wasFound
 
 {-|
     A type alias for parametrizing what type of numeric value Runic 
@@ -55,12 +64,23 @@ data RunicKeyword
     | End
     | NewLine
     | Expr Text
-    deriving (Eq, Ord, Show)
+    deriving (Eq, Ord)
 
 instance TokenEq RunicKeyword where
     (=+=) :: RunicKeyword -> RunicKeyword -> Bool
     (Expr _) =+= (Expr _) = True
     a =+= b = a == b
+
+instance Show RunicKeyword where
+    {-|
+        This is a gross implementation of show that uses a reversed 
+        version of the @tokenMapping@ Map instance 
+    -}
+    show :: RunicKeyword -> String
+    show token = 
+        let filterFn = ((==) token . (!) tokenMapping)
+            match = filter filterFn (keys tokenMapping)
+        in unpack $ head match
 
 {-|
     A functor for a token that stores the line number it originated
@@ -68,6 +88,9 @@ instance TokenEq RunicKeyword where
 -}
 data TokenTracker t = TokenTracker Int t
     deriving (Eq, Ord)
+
+getToken :: TokenTracker a -> a
+getToken (TokenTracker _ tok) = tok
 
 instance TokenEq t => TokenEq (TokenTracker t) where
     (=+=) :: TokenTracker t -> TokenTracker t -> Bool
@@ -85,9 +108,14 @@ instance Functor TokenTracker where
         = TokenTracker lineNo (f x)
 
 {-|
-    A value tracked by the global (or local in the case of functions)
+    Represents a runic keyword wrapped in a TokenTracker functor
+-}
+type Token = TokenTracker RunicKeyword
+
+{-|
+    A value tracked by the global (or local, in the case of functions)
     context of the Runic compiler. Can be a variable with a domain and 
-    initial guess, a constant value, or a pure numerical function.
+    initial guess, a constant value, or a pure, numeric function.
 -}
 data RunicObject
     -- | Value, Guess, Min, Max
@@ -115,11 +143,6 @@ toShuntingYdContext = M.map toCtxItem
         toCtxItem (RnVariable value _ _ _) = E.Const value
         toCtxItem (RnConst value) = E.Const value
         toCtxItem (RnFunction x y) = E.Function x y
-
-{-|
-    Represents a runic keyword wrapped in a TokenTracker functor
--}
-type Token = TokenTracker RunicKeyword
 
 {-|
     Provides a mapping between keywords in valid Runic syntax and 

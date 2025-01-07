@@ -4,6 +4,7 @@ module Compiler.Evaluator
     , evaluateExpr
     , evaluateExprWithCtx
     , runCompiledWithCtx
+    , SyNum
     ) where
 
 import Data.Map ( empty )

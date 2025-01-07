@@ -119,7 +119,7 @@ type Token = TokenTracker RunicKeyword
 -}
 data RunicObject
     -- | Value, Guess, Min, Max
-    = RnVariable RunicNum RunicNum RunicNum RunicNum
+    = RnVariable RunicNum (Maybe RunicNum) (Maybe (RunicNum, RunicNum))
     -- | Value
     | RnConst RunicNum
     -- | # Args, Function
@@ -140,7 +140,7 @@ toShuntingYdContext :: RunicContext -> Context
 toShuntingYdContext = M.map toCtxItem
     where
         toCtxItem :: RunicObject -> CtxItem
-        toCtxItem (RnVariable value _ _ _) = E.Const value
+        toCtxItem (RnVariable value _ _) = E.Const value
         toCtxItem (RnConst value) = E.Const value
         toCtxItem (RnFunction x y) = E.Function x y
 

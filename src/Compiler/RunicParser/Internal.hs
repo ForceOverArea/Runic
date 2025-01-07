@@ -1,16 +1,20 @@
 {-# LANGUAGE Safe #-}
 module Compiler.RunicParser.Internal
-    ( (.?)
-    , (..??)
-    , (??)
-    , (??..)
+    ( (<?>)
+    , (<??>)
+    , (<.>)
+    , (<..>)
     , addToContext
+    , buildRegex
+    , buildRegexOpt
     , cycleToken
     , execRunicTopLevel
     , execRunicT
+    , getContext
     , getLastToken
-    , grabFromContext
+    , tryGetFromCtx
     , optionValidator
+    , runParser
     , tryGetToken
     , validator
     , RunicT
@@ -20,7 +24,6 @@ module Compiler.RunicParser.Internal
 import Data.Map as M ( empty, insert, lookup, union )
 import Data.Text ( Text )
 import Data.List ( uncons )
-import Control.Arrow ( (>>>), right )
 import Control.Monad ( when )
 import Control.Monad.Identity ( Identity(..) )
 import Control.Monad.Except ( runExceptT, throwError, ExceptT )
@@ -35,89 +38,84 @@ import Compiler.RunicParser.Types
     , RunicKeyword(Expr)
     )
 
-{-|
-    A monad transformer built for capturing grammar errors or useful
-    data for computing values to add to the compiler's context.
-
-    This monad transformer type also contains a context that  
--}
+-- | A monad transformer built for capturing grammar errors or useful
+-- data for computing values to add to the compiler's context.
+--
+-- This monad transformer type also contains a context that  
 type RunicT m = RWST
     RunicContext            -- reader (outer context, empty in the case of the global context)
     [Text]                  -- writer (captures text from Expr's)
     (Token, [Token], RunicContext) -- state (last token processed and tokens left, local context)
     (ExceptT String m)      -- exception (possible error from grammatically incorrect phrase, i.e. mismatch)
 
-{-|
-    ### RunicTopLevel
-    
-    The top-level of the Runic Parser state machine, containing an 
-    empty outer context (reader value), the token stream to be parsed
-    (half of state value), a global, mutable context (other half of 
-    state), and whose accompanying @eval@ function produces an error 
-    message or a final, global context and list of equations to solve.
 
-    ### What is it for? 
-    
-    This information will be passed to the dependency graph builder to
-    create a solution to the system, which can be computed at a later 
-    step.
-
-    (Almost) fully expanded, this is the type: 
-    @RWST RunicContext [Text] (Token, [Token], RunicContext) ExceptT String Identity@
--}
+-- | ### RunicTopLevel
+--
+-- The top-level of the Runic Parser state machine, containing an 
+-- empty outer context (reader value), the token stream to be parsed
+-- (half of state value), a global, mutable context (other half of 
+-- state), and whose accompanying @eval@ function produces an error 
+-- message or a final, global context and list of equations to solve.
+-- 
+-- ### What is it for? 
+-- 
+-- This information will be passed to the dependency graph builder to
+-- create a solution to the system, which can be computed at a later 
+-- step.
+-- 
+-- (Almost) fully expanded, this is the type: 
+-- @RWST RunicContext [Text] (Token, [Token], RunicContext) ExceptT String Identity@
 type RunicTopLevel = RunicT Identity
 
-
-{-|
-    The function responsible for kicking off the global process of 
-    parsing the Runic source code in a given program. 
--}
+-- | The function responsible for kicking off the global process of 
+-- parsing the Runic source code in a given program. 
 execRunicTopLevel :: RunicTopLevel a
     -> [Token]
     -> Either String (RunicContext, [Text])
 execRunicTopLevel action tokens = do
-    (initialToken, initialStream) <- maybe (Left "tried to compile \
-        \source, but found no tokens") Right $ uncons tokens
+    (initialToken, initialStream) <- maybe 
+        (Left "tried to compile source, but found no tokens") 
+        Right $ uncons tokens
     ((_, _, ctx), eqns) <- runIdentity $ runExceptT
         $ execRWST action empty (initialToken, initialStream, empty)
     return (ctx, eqns)
 
-{-|
-    The function responsible for kicking off parser substates of the 
-    main Runic compiler thread. This creates an isolated local context 
-    while still providing access to the lower (more global?) context
-    owned by the main thread.
--}
+-- | The function responsible for kicking off parser substates of the 
+-- main Runic compiler thread. This creates an isolated local context 
+-- while still providing access to the lower (more global?) context
+-- owned by the main thread.
 execRunicT :: Monad m
-    => RunicT m a -- the Runic monad transformer action to be executed, ignoring the returned value of type 'a'
-    -> RunicContext -- the context to lift from the local level to the global level of the transformer-wrapped monad type
-    -> Token -- the previous token that triggered this monad action in the overarching state machine
-    -> [Token] -- the initial token stream to pass to the 
-    -> m (Either String ([Token], RunicContext, [Text]))
+    -- the Runic monad transformer action to be executed, ignoring 
+    -- the returned value of type 'a'
+    => RunicT m a
+    -- the context to lift from the local level to the global level 
+    -- of the transformer-wrapped monad type 
+    -> RunicContext 
+    -- the previous token that triggered this monad action in the 
+    -- overarching state machine
+    -> Token 
+    -- the initial token stream to pass to the @RunicT m@ action
+    -> [Token] 
+    -> m (Either String ((Token, [Token], RunicContext), [Text]))
 execRunicT action ctx prevTok tokens = do
-    result <- runExceptT $ execRWST action ctx (prevTok, tokens, empty)
-    return $ fmap spliceState result
-    where
-        spliceState :: ((Token, [Token], RunicContext), [Text])
-            -> ([Token], RunicContext, [Text])
-        spliceState ((prev, inputQueue, localContext), captures) =
-            (prev:inputQueue, localContext, captures)
+    runExceptT $ execRWST action ctx (prevTok, tokens, empty)
 
-{-|
-
--}
-runParserSubstate :: MonadWriter w m => RunicT m () -> RunicT m [Text]
-runParserSubstate runicKeywordRegex = do
+-- | Starts a sub-state machine of the global (or local function) 
+-- parser, returning the expressions captured while running the 
+-- given Runic-native regex pattern
+runParser :: Monad m => RunicT m () -> RunicT m [Text]
+runParser runicKeywordRegex = do
     (prev, inputQueue, localCtx) <- get
     globalCtx <- ask
     let substateGlobalCtx = localCtx `union` globalCtx
-    let result = execRunicT runicKeywordRegex substateGlobalCtx prev inputQueue
-    _ <- do
-        x <- result
-        
-        return x
-    return 
-
+    result <- lift . lift -- lift 2X for ExceptT AND RWST
+        $ execRunicT runicKeywordRegex substateGlobalCtx prev inputQueue
+    case result of 
+        Left errMsg -> throwError errMsg
+        Right (state, captures) -> do
+            put state
+            return captures
+    
 {-|
     
 -}
@@ -158,27 +156,18 @@ logExpression tok = do
         (Expr e) -> tell [e]
         _ -> return ()
 
-{-|
-
--}
-grabFromContext :: Monad m => Text -> RunicT m RunicObject
-grabFromContext name = do
+-- | Grabs the union of the state and the local context, favoring 
+-- duplicate values defined in the local context. 
+getContext :: Monad m => RunicT m RunicContext 
+getContext = do
     (_, _, localCtx) <- get
-    -- Try to get the result from the local context first
-    let localResult = M.lookup name localCtx
-    case localResult of
-        Just value -> return value
-        Nothing -> do
-            -- if that fails, then look to the global context in the 
-            -- reader level of the monad stack, returning an error 
-            -- message on failure.
-            globalResult <- asks (M.lookup name)
-            case globalResult of
-                Just value -> return value
-                Nothing -> lift $ throwError
-                    $ "found undefined value "
-                    ++ show name
-                    ++ " in expression"
+    globalCtx <- ask
+    return $ localCtx `union` globalCtx
+
+-- | Tries to get a specific item from context by name (checking in
+-- the local-favoring union of the local and global context)
+tryGetFromCtx :: Monad m => Text -> RunicT m (Maybe RunicObject) 
+tryGetFromCtx name = M.lookup name <$> getContext
 
 {-|
 
@@ -192,7 +181,7 @@ addToContext name item = do
 {-|
 
 -}
-validator :: (MonadWriter w m) => [RunicKeyword] -> RunicT m ()
+validator :: MonadWriter w m => [RunicKeyword] -> RunicT m ()
 validator whitelist = do
     possTok <- tryGetToken
     case possTok of
@@ -207,7 +196,7 @@ validator whitelist = do
 {-|
 
 -}
-optionValidator :: (MonadWriter w m) => [RunicKeyword] -> RunicT m ()
+optionValidator :: MonadWriter w m => [RunicKeyword] -> RunicT m ()
 optionValidator whitelist = do
     possTok <- tryGetToken
     case possTok of
@@ -216,30 +205,36 @@ optionValidator whitelist = do
             logExpression x
             when (getToken x `tElem` whitelist) 
                 cycleToken
-{-|
 
--}
-(??..) :: MonadWriter w m => RunicT m () -> [RunicKeyword] -> RunicT m ()
-prevTokenValid ??.. whitelist = prevTokenValid >> validator whitelist
+-- | A function for starting a regex in the Runic alphaber, matching
+-- the token given once.
+buildRegex :: MonadWriter w m => RunicKeyword -> RunicT m ()
+buildRegex expected = validator [expected]
 
-{-|
+-- | A function for starting a regex in the Runic alphabet, optionally
+-- matching the token given once.
+buildRegexOpt :: MonadWriter w m => RunicKeyword -> RunicT m ()
+buildRegexOpt expected = optionValidator [expected]
 
--}
-(??) :: MonadWriter w m => RunicT m () -> RunicKeyword -> RunicT m ()
-prevTokenValid ?? expected = prevTokenValid ??.. [expected]
+-- | The match whitelist operator for matching one of the following 
+-- tokens given in a list once.
+(<..>) :: MonadWriter w m => RunicT m () -> [RunicKeyword] -> RunicT m ()
+prevTokenValid <..> whitelist = prevTokenValid >> validator whitelist
 
-{-|
+-- | The match token operator for matching the following token once
+(<.>) :: MonadWriter w m => RunicT m () -> RunicKeyword -> RunicT m ()
+prevTokenValid <.> expected = prevTokenValid <..> [expected]
 
--}
-(..??) :: MonadWriter w m
+-- | The optional whitelist operator for optionally matching one of a
+--   list of tokens.
+(<??>) :: MonadWriter w m
     => RunicT m ()
     -> [RunicKeyword]
     -> RunicT m ()
-prevTokenValid ..?? whitelist
+prevTokenValid <??> whitelist
     = prevTokenValid >> optionValidator whitelist
 
-{-|
-
--}
-(.?) :: MonadWriter w m => RunicT m () -> RunicKeyword -> RunicT m ()
-prevTokenValid .? expected = prevTokenValid ..?? [expected]
+-- | The optional match operator for optionally matching a single 
+--   token.
+(<?>) :: MonadWriter w m => RunicT m () -> RunicKeyword -> RunicT m ()
+prevTokenValid <?> expected = prevTokenValid <??> [expected]

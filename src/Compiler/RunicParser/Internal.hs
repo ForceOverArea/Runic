@@ -1,9 +1,9 @@
 {-# LANGUAGE Safe #-}
 module Compiler.RunicParser.Internal
-    ( (<?>)
-    , (<??>)
-    , (<.>)
-    , (<..>)
+    ( (?>)
+    , (??>)
+    , (.>)
+    , (..>)
     , addToContext
     , buildRegex
     , buildRegexOpt
@@ -81,28 +81,21 @@ execRunicTopLevel action tokens = do
     return (ctx, eqns)
 
 -- | The function responsible for kicking off parser substates of the 
--- main Runic compiler thread. This creates an isolated local context 
--- while still providing access to the lower (more global?) context
--- owned by the main thread.
+--   main Runic compiler thread. This creates an isolated local context 
+--   while still providing access to the lower (more global?) context
+--   owned by the main thread.
 execRunicT :: Monad m
-    -- the Runic monad transformer action to be executed, ignoring 
-    -- the returned value of type 'a'
-    => RunicT m a
-    -- the context to lift from the local level to the global level 
-    -- of the transformer-wrapped monad type 
-    -> RunicContext 
-    -- the previous token that triggered this monad action in the 
-    -- overarching state machine
-    -> Token 
-    -- the initial token stream to pass to the @RunicT m@ action
-    -> [Token] 
+    => RunicT m a -- ^ The Runic monad transformer action to be executed, ignoring the returned value of type 'a'
+    -> RunicContext -- ^ the context to lift from the local level to the global level of the transformer-wrapped monad type 
+    -> Token -- ^ the previous token that triggered this monad action in the overarching state machine
+    -> [Token] -- ^ the initial token stream to pass to the @RunicT m@ action
     -> m (Either String ((Token, [Token], RunicContext), [Text]))
 execRunicT action ctx prevTok tokens = do
     runExceptT $ execRWST action ctx (prevTok, tokens, empty)
 
 -- | Starts a sub-state machine of the global (or local function) 
--- parser, returning the expressions captured while running the 
--- given Runic-native regex pattern
+--   parser, returning the expressions captured while running the 
+--   given Runic-native regex pattern.
 runParser :: Monad m => RunicT m () -> RunicT m [Text]
 runParser runicKeywordRegex = do
     (prev, inputQueue, localCtx) <- get
@@ -181,7 +174,7 @@ addToContext name item = do
 {-|
 
 -}
-validator :: MonadWriter w m => [RunicKeyword] -> RunicT m ()
+validator :: Monad m => [RunicKeyword] -> RunicT m ()
 validator whitelist = do
     possTok <- tryGetToken
     case possTok of
@@ -196,7 +189,7 @@ validator whitelist = do
 {-|
 
 -}
-optionValidator :: MonadWriter w m => [RunicKeyword] -> RunicT m ()
+optionValidator :: Monad m => [RunicKeyword] -> RunicT m ()
 optionValidator whitelist = do
     possTok <- tryGetToken
     case possTok of
@@ -208,33 +201,33 @@ optionValidator whitelist = do
 
 -- | A function for starting a regex in the Runic alphaber, matching
 -- the token given once.
-buildRegex :: MonadWriter w m => RunicKeyword -> RunicT m ()
+buildRegex :: Monad m => RunicKeyword -> RunicT m ()
 buildRegex expected = validator [expected]
 
 -- | A function for starting a regex in the Runic alphabet, optionally
 -- matching the token given once.
-buildRegexOpt :: MonadWriter w m => RunicKeyword -> RunicT m ()
+buildRegexOpt :: Monad m => RunicKeyword -> RunicT m ()
 buildRegexOpt expected = optionValidator [expected]
 
 -- | The match whitelist operator for matching one of the following 
 -- tokens given in a list once.
-(<..>) :: MonadWriter w m => RunicT m () -> [RunicKeyword] -> RunicT m ()
-prevTokenValid <..> whitelist = prevTokenValid >> validator whitelist
+(..>) :: Monad m => RunicT m () -> [RunicKeyword] -> RunicT m ()
+prevTokenValid ..> whitelist = prevTokenValid >> validator whitelist
 
 -- | The match token operator for matching the following token once
-(<.>) :: MonadWriter w m => RunicT m () -> RunicKeyword -> RunicT m ()
-prevTokenValid <.> expected = prevTokenValid <..> [expected]
+(.>) :: Monad m => RunicT m () -> RunicKeyword -> RunicT m ()
+prevTokenValid .> expected = prevTokenValid ..> [expected]
 
 -- | The optional whitelist operator for optionally matching one of a
 --   list of tokens.
-(<??>) :: MonadWriter w m
+(??>) :: Monad m
     => RunicT m ()
     -> [RunicKeyword]
     -> RunicT m ()
-prevTokenValid <??> whitelist
+prevTokenValid ??> whitelist
     = prevTokenValid >> optionValidator whitelist
 
 -- | The optional match operator for optionally matching a single 
 --   token.
-(<?>) :: MonadWriter w m => RunicT m () -> RunicKeyword -> RunicT m ()
-prevTokenValid <?> expected = prevTokenValid <??> [expected]
+(?>) :: Monad m => RunicT m () -> RunicKeyword -> RunicT m ()
+prevTokenValid ?> expected = prevTokenValid ??> [expected]

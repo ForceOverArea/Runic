@@ -50,8 +50,6 @@ type RunicNum = SyNum
 data RunicKeyword
     = Keep
     | On
-    | LBrack
-    | RBrack
     | Guess
     | For
     | Const
@@ -118,12 +116,9 @@ type Token = TokenTracker RunicKeyword
     initial guess, a constant value, or a pure, numeric function.
 -}
 data RunicObject
-    -- | Value, Guess, Min, Max
-    = RnVariable RunicNum (Maybe RunicNum) (Maybe (RunicNum, RunicNum))
-    -- | Value
-    | RnConst RunicNum
-    -- | # Args, Function
-    | RnFunction Int ([RunicNum] -> RunicNum)
+    = RnVariable RunicNum (Maybe RunicNum) (Maybe (RunicNum, RunicNum)) -- ^ Value, Guess, Min, Max
+    | RnConst RunicNum -- ^ Value
+    | RnFunction Int ([RunicNum] -> RunicNum) -- ^ No. Args, Function
 
 {-|
     A type alias for a Map Text RunicObject aka the context at the 
@@ -152,8 +147,6 @@ tokenMapping :: Map Text RunicKeyword
 tokenMapping = fromList
     [ ("keep"   , Keep)
     , ("on"     , On)
-    , ("["      , LBrack)
-    , ("]"      , RBrack)
     , ("guess"  , Guess)
     , ("for"    , For)
     , ("const"  , Compiler.RunicParser.Types.Const)

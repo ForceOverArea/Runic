@@ -28,7 +28,7 @@ import Control.Monad.RWS ( evalRWST, RWST )
 import Control.Monad.Reader ( asks )
 import Control.Monad.State.Lazy ( get, put, lift )
 import Data.List as L ( uncons )
-import Data.Map as M ( (!), fromList, keys, lookup, member, Map )
+import Data.Map as M ( fromList, keys, lookup, member, Map )
 import Data.Maybe ( fromMaybe )
 import Data.Text as T ( cons, head, pack, uncons, unpack, words, Text )
 import Text.Read ( readMaybe )
@@ -54,30 +54,18 @@ data Token
     | RParen
     deriving (Eq, Show)
 
-{-|
-    A `Map` of named `CtxItem`s (all are either a function or a 
-    constant) used to translate custom functions or values in an expression
--}
+-- | A `Map` of named `CtxItem`s (all are either a function or a 
+--   constant) used to translate custom functions or values in an 
+--   expression.
 type Context = Map Text CtxItem
 
-{-| 
-    Provides read-only access to a context for providing extended
-    functionality in the shunting yard implementation.
--}
--- type ContextT = ReaderT Context
-
-{-|
-    Provides three separate stacks/queues required to implement a 
-    traditional shunting yard algorithm
--}
--- type ShuntingYd = StateT ([Token], [Token], [Token]) (ContextT (Either String))
+-- | Provides three separate stacks/queues required to implement a 
+--   traditional shunting yard algorithm.
 type ShuntingYd = RWST Context () ([Token], [Token], [Token]) (Either String)
 
-{-|
-    Type definition to parametrize the numeric type for the shunting yard
-    (in case complex number support is added.)
--}
-type SyNum = Double;
+-- | Type definition to parametrize the numeric type for the shunting 
+--   yard (in case complex number support is added.)
+type SyNum = Double
 
 -- | A list of the operators accepted by the shunting yard.
 operators :: Text
@@ -87,58 +75,53 @@ operators = foldr (<>) "" (keys operatorMap)
 tokenLiterals :: Text
 tokenLiterals = operators <> ",()"
 
-{-|
-    A map of all the operators that might be referenced by the 
-    shunting yard implementation.
--}
+-- | A map of all the operators that might be referenced by the 
+--   shunting yard implementation.
 operatorMap :: Map Text (SyNum -> SyNum -> SyNum, Int, Bool)
 operatorMap = fromList 
-    [ ("+", ((+),     2,  False))
-    , ("-", ((-),     2,  False))
-    , ("*", ((*),     3,  False))
-    , ("/", ((/),     3,  False))
-    , ("^", ((**),    4,  True ))
+    [ ("^", ((**),              4,  True ))
+    , ("*", ((*),               3,  False))
+    , ("/", ((/),               3,  False))
+    , ("+", ((+),               2,  False))
+    , ("-", ((-),               2,  False))
+    -- , ("<=",(cLikeLogOp (<=),   1,  False))
+    -- , (">=",(cLikeLogOp (>=),   1,  False))
+    -- , ("==",(cLikeLogOp (==),   1,  False))
+    -- , ("!=",(cLikeLogOp (!=),   1,  False))
+    -- , ("<",(cLikeLogOp (<),     1,  False))
+    -- , (">",(cLikeLogOp (>),     1,  False))
     ]
+    -- where
+    --     cLikeLogOp :: (SyNum -> SyNum -> Bool) -> SyNum -> SyNum -> SyNum
+    --     cLikeLogOp op a b = 
+    --         if a `op` b then
+    --             1.0
+    --         else
+    --             0.0
 
-{-|
-
--}
+-- | Returns the data regarding an operator from the lookup table 
+--   provided by `operatorMap`
 opData :: Char -> Maybe (SyNum -> SyNum -> SyNum, Int, Bool)
-opData = flip M.lookup operatorMap . pack . show
+opData = (`M.lookup` operatorMap) . pack . show
 
-{-| 
-    The binary operation associated with each text representation of 
-    an operator.
--}
+-- | The binary operation associated with each text representation of 
+--   an operator.
 getOp :: Char -> ShuntingYd (SyNum -> SyNum -> SyNum)
-getOp op = if key `member` operatorMap then
-        return (fst' $ operatorMap ! key)
-    else
-        returnError $ "found unknown binary operator: " ++ show op
-    where
-        key = (pack . show) op
-
-        fst' :: (a, b, c) -> a
-        fst' (x, _, _) = x
+getOp op = maybe 
+        (returnError $ "found unknown binary operator: " ++ show op)
+        (return . \(x, _, _) -> x)
+        (opData op)
 
 -- | The precedence of each operator that may be parsed
 precedence :: Char -> Int
-precedence op = maybe 1 snd' (opData op)
-    where 
-        snd' :: (a, b, c) -> b
-        snd' (_, x, _) = x
+precedence op = maybe 1 (\(_, x, _) -> x) (opData op)
 
 -- | Indicates whether the given operator is left associative.
 isLeftAssoc :: Char -> Bool
-isLeftAssoc op = maybe False thd (opData op)
-    where 
-        thd :: (a, b, c) -> c
-        thd (_, _, x) = x
+isLeftAssoc op = maybe False (\(_, _, x) -> x) (opData op)
 
-{-|
-    Converts a value to a token for use in the shunting yard 
-    implementation.
--}
+-- | Converts a value to a token for use in the shunting yard 
+--   implementation.
 tokenize :: Context -> Text -> Maybe Token
 tokenize _ "," = Just Comma
 tokenize _ "(" = Just LParen
@@ -148,11 +131,9 @@ tokenize ctx word
     | word `member` ctx = Just (CtxVal word)
     | otherwise = fmap Num (readMaybe . unpack $ word)
 
-{-|
-    Wraps tokens that have a literal translation to a `Token` in 
-    text format with whitespace, allowing them to be separated into 
-    tokens with `Data.Text.words`.
--}
+-- | Wraps tokens that have a literal translation to a `Token` in 
+--   text format with whitespace, allowing them to be separated into 
+--   tokens with `Data.Text.words`.
 punctuate :: Text -> Text
 punctuate "" = ""
 punctuate expr = 
@@ -298,7 +279,7 @@ tryGetCtxItem name = asks (M.lookup name)
     constructor value containing the given error message.
 -}
 returnError :: String -> ShuntingYd b
-returnError errMsg = lift $ Left errMsg
+returnError = lift . Left
 
 {-|
     Populates the Contextnd initial state for a `ShuntingYd` 

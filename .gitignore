@@ -1,6 +1,6 @@
-# Haskell/Stack artifacts
-.stack-work/
+# Haskell artifacts
 *~
+dist-newstyle
 
 # Prototyping files
 *.py 

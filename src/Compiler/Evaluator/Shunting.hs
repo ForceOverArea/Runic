@@ -4,9 +4,8 @@ module Compiler.Evaluator.Shunting
     ( rpnify
     ) where
 
-import Control.Monad ( when )
-import Data.Text ( Text )
-import Compiler.Evaluator.Internal
+import safe Control.Monad (when)
+import safe Compiler.Evaluator.Internal
     ( getCtxItem
     , getQueue
     , headStack
@@ -87,7 +86,7 @@ handleOp o1 = do
     function also implements error handling for values that are not 
     found in the given context.
 -}
-handleCtxVal :: Text -> ShuntingYd ()
+handleCtxVal :: String -> ShuntingYd ()
 handleCtxVal itemName = do
     possItem <- getCtxItem itemName
     case possItem of

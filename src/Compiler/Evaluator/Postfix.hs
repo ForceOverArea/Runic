@@ -3,7 +3,7 @@ module Compiler.Evaluator.Postfix
     ( pfeval
     ) where
 
-import Compiler.Evaluator.Internal
+import safe Compiler.Evaluator.Internal
     ( getCtxItem
     , getOp
     , headStack
@@ -16,21 +16,17 @@ import Compiler.Evaluator.Internal
     , Context
     , CtxItem(..)
     , ShuntingYd
-    , SyNum
+    , RnNum
     , Token(..)
     )
 
-{-|
-    Kicks off a postfix evaluator given a context Map, an input
-    token queue and an action shunting yard monad.
--}
-pfeval :: Context -> [Token] -> Either String SyNum
+-- | Kicks off a postfix evaluator given a context Map, an input
+--   token queue and an action shunting yard monad.
+pfeval :: Context -> [Token] -> Either String RnNum
 pfeval = runShuntingYd procPf
 
-{-|
-    The internal implementation of the postfix evaluator.
--}
-procPf :: ShuntingYd SyNum
+-- | The internal implementation of the postfix evaluator.
+procPf :: ShuntingYd RnNum
 procPf = do
     possTok <- tryPopInputQueue
     case possTok of
@@ -47,11 +43,9 @@ procPf = do
                 _ -> returnError ""
             procPf
 
-{-|
-    Handles reporting errors or fetching the evaluated value from the 
-    stack once the input token queue is empty.
--}
-returnVal :: ShuntingYd SyNum
+-- | Handles reporting errors or fetching the evaluated value from the 
+--   stack once the input token queue is empty.
+returnVal :: ShuntingYd RnNum
 returnVal = do
     result <- tryPopStack
     emptyStack <- headStack
@@ -62,21 +56,17 @@ returnVal = do
             ++ show emptyStack 
             ++ " and possibly other values left over after evaluation"
 
-{-|
-    Applies an operator to the 2 numeric arguments at the top of the 
-    operator stack.
--}
+-- | Applies an operator to the 2 numeric arguments at the top of the 
+--   operator stack.
 applyOp :: Char -> ShuntingYd ()
 applyOp op = do
     operands <- tryPopStackN 2
     operation <- getOp op
     pushStack (Num $ head operands `operation` (operands !! 1) )
 
-{-|
-    Applies a function to as many arguments as it takes at the top of 
-    the operator stack.
--}
-applyFunction :: Int -> ([SyNum] -> SyNum) -> ShuntingYd ()
+-- | Applies a function to as many arguments as it takes at the top of 
+--   the operator stack.
+applyFunction :: Int -> ([RnNum] -> RnNum) -> ShuntingYd ()
 applyFunction n f = do
     args <- tryPopStackN n
     pushStack (Num $ f args)

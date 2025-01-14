@@ -6,7 +6,7 @@ module Compiler.Evaluator
     , runCompiledWithCtx
     ) where
 
-import safe Data.Map (empty)
+import safe qualified Data.Map as Map (empty)
 import safe Compiler.Evaluator.Internal (tokenizeExpr, Context, RnNum, Token)
 import safe Compiler.Evaluator.Postfix (pfeval)
 import safe Compiler.Evaluator.Shunting (rpnify)
@@ -37,4 +37,4 @@ evaluateExprWithCtx expr ctx = do
 -- | Evaluates a given expression to a single numeric value with no 
 --   context, simply allowing 
 evaluateExpr :: String -> Either String RnNum
-evaluateExpr expr = evaluateExprWithCtx expr empty
+evaluateExpr expr = evaluateExprWithCtx expr Map.empty

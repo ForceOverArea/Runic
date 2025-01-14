@@ -6,15 +6,15 @@ module Compiler.Parser.Internal
 
 import safe Prelude hiding (lookup)
 import safe Compiler.Internal (CtxItem, Runic)
-import safe Data.Map (insert, lookup)
+import safe qualified Data.Map as Map (insert, lookup)
 import safe Text.Parsec (getState, updateState)
 
 -- | Handles adding items to the context folded up by the Runic 
 --   parser.
 runicAddToCtx :: String -> CtxItem -> Runic ()
-runicAddToCtx name item = updateState $ insert name item
+runicAddToCtx name item = updateState $ Map.insert name item
 
 -- | Handles getting values from the context stored in the Runic 
 --   parser.
 runicGetFromCtx :: String -> Runic (Maybe CtxItem)
-runicGetFromCtx name = lookup name <$> getState
+runicGetFromCtx name = Map.lookup name <$> getState

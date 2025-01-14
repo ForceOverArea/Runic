@@ -3,8 +3,8 @@ module Compiler.Parser.RunicTokens
     ( runicTokenParser
     ) where
 
-import safe Text.Parsec ( alphaNum, char, letter, oneOf, (<|>) )
-import safe Text.Parsec.Token ( makeTokenParser, GenLanguageDef(..), LanguageDef, TokenParser )
+import safe Text.Parsec (alphaNum, char, letter, oneOf, (<|>))
+import safe Text.Parsec.Token (makeTokenParser, GenLanguageDef(..), LanguageDef, TokenParser)
 
 -- | Definition of the Runic equation-solver language.
 runicDef :: LanguageDef st

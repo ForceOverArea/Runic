@@ -29,7 +29,7 @@ import safe Control.Monad.Reader (asks)
 import safe Control.Monad.State.Lazy (get, put, lift)
 import safe Compiler.Internal (RnNum)
 import safe Data.List as L (uncons)
-import safe Data.Map as M (fromList, keys, lookup, member, Map)
+import safe qualified Data.Map as Map (fromList, keys, lookup, member, Map)
 import safe Data.Maybe (fromMaybe)
 import safe Text.Read (readMaybe)
 
@@ -53,7 +53,7 @@ data Token
 -- | A `Map` of named `CtxItem`s (all are either a function or a 
 --   constant) used to translate custom functions or values in an 
 --   expression.
-type Context = Map String CtxItem
+type Context = Map.Map String CtxItem
 
 -- | Provides three separate stacks/queues required to implement a 
 --   traditional shunting yard algorithm.
@@ -61,7 +61,7 @@ type ShuntingYd = RWST Context () ([Token], [Token], [Token]) (Either String)
 
 -- | A list of the operators accepted by the shunting yard.
 operators :: String
-operators = foldr (<>) "" (keys operatorMap)
+operators = foldr (<>) "" (Map.keys operatorMap)
 
 -- | A list of tokens understood natively by the shunting yard.
 tokenLiterals :: String
@@ -69,8 +69,8 @@ tokenLiterals = operators <> ",()"
 
 -- | A map of all the operators that might be referenced by the 
 --   shunting yard implementation.
-operatorMap :: Map String (RnNum -> RnNum -> RnNum, Int, Bool)
-operatorMap = fromList 
+operatorMap :: Map.Map String (RnNum -> RnNum -> RnNum, Int, Bool)
+operatorMap = Map.fromList 
     [ ("^", ((**),              4,  True ))
     , ("*", ((*),               3,  False))
     , ("/", ((/),               3,  False))
@@ -90,7 +90,7 @@ operatorMap = fromList
 -- | Returns the data regarding an operator from the lookup table 
 --   provided by `operatorMap`
 opData :: Char -> Maybe (RnNum -> RnNum -> RnNum, Int, Bool)
-opData = (`M.lookup` operatorMap) . show
+opData = (`Map.lookup` operatorMap) . show
 
 -- | The binary operation associated with each text representation of 
 --   an operator.
@@ -115,8 +115,8 @@ tokenize _ "," = Just Comma
 tokenize _ "(" = Just LParen
 tokenize _ ")" = Just RParen
 tokenize ctx word
-    | word `member` operatorMap = Just (Op $ head word)
-    | word `member` ctx = Just (CtxVal word)
+    | word `Map.member` operatorMap = Just (Op $ head word)
+    | word `Map.member` ctx = Just (CtxVal word)
     | otherwise = fmap Num (readMaybe word)
 
 -- | Wraps tokens that have a literal translation to a `Token` in 
@@ -238,7 +238,7 @@ getCtxItem name = do
 
 -- | Fetches an item from the provided read-only context.
 tryGetCtxItem :: String -> ShuntingYd (Maybe CtxItem)
-tryGetCtxItem name = asks (M.lookup name)
+tryGetCtxItem name = asks (Map.lookup name)
 
 -- | Changes the final result of the shunting yard to a `Left` 
 --   constructor value containing the given error message.

@@ -28,8 +28,9 @@ library
         Compiler.Evaluator.Shunting
         Compiler.Internal
         Compiler.Parser.Internal
-        Compiler.Parser.RunicTokens
         Compiler.Parser.RunicLexemes
+        Compiler.Parser.RunicMath
+        Compiler.Parser.RunicTokens
     -- other-modules:
         
     other-extensions:

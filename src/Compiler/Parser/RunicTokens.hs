@@ -18,20 +18,12 @@ runicDef = LanguageDef
     , opStart           = oneOf "^*/+-<!=>$\\"
     , opLetter          = oneOf "/=>" -- for derivatives, partial equality, and unit conversion operator
     , reservedNames     = keywords
-    , reservedOpNames   = []
+    , reservedOpNames   = operators
     , caseSensitive     = True
     }
     where
-        keywords = 
-            [ "keep"
-            , "on"
-            , "guess"
-            , "for"
-            , "const"
-            , "fn"
-            , "return"
-            , "system"
-            ]
+        keywords = [ "keep", "on", "guess", "for", "const", "fn", "return", "system" ]
+        operators = [ "+", "-" ]
 
 -- | A token parser instantiated from the `runicDef` 
 --   language definition.

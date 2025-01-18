@@ -11,14 +11,20 @@ testConstDecl =
     in show $ difference captured empty
     where source = "const x = 3\n"
 
+-- testConversion :: Double
+-- testConversion = 
+--     let captured = testLexeme constDecl source "testConversion"
+--     in show $ difference captured
+--     where source = "[m->millimeter]"
 
-
--- testDomainDecl :: String
--- testDomainDecl = 
---     let captured = testLexeme domainDecl source "testDomainDecl"
---     in show $ difference captured empty
---     where source = "keep x on []"
+testConversion' :: Double
+testConversion' = 
+    let captured = testLexeme conversion' source "testConversion'"
+    in show $ difference captured
+    where source = "convert(\"m\",\"millimeter\")"
 
 main :: IO ()
 main = do
     print testConstDecl
+    print testConversion
+    print testConversion'

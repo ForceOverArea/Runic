@@ -1,22 +1,33 @@
 {-# LANGUAGE Safe #-}
-module Parser.Internal 
-    ( runicAddToCtx
+module Parser.Internal
+    ( evalRunicT
+    , runicAddToCtx
     , runicGetFromCtx
     ) where
 
-import safe Prelude hiding (lookup)
-import safe qualified Data.Map as Map (insert, lookup)
-import safe Text.Parsec (getState, updateState)
-import safe Types (CtxItem, RunicT)
+import safe Control.Monad.Reader (runReaderT)
+import safe qualified Data.Map as M (empty, insert, lookup)
+import safe Text.Parsec (getState, runParserT, updateState, SourceName, ParseError)
+import safe Types (CtxItem, RunicT, UCMap)
 
--- runicGetUCData :: String -> 
+-- | Evaluates a @RunicT@ monad transformer action, returning the 
+--   final state of the contained within the Runic parser.
+evalRunicT :: Monad m
+    => RunicT m ()
+    -> UCMap
+    -> SourceName
+    -> String
+    -> m (Either ParseError ())
+evalRunicT action ucMap sourceName inputStream
+    = flip runReaderT ucMap 
+    $ runParserT action M.empty sourceName inputStream
 
 -- | Handles adding items to the context folded up by the Runic 
 --   parser.
 runicAddToCtx :: Monad m => String -> CtxItem -> RunicT m ()
-runicAddToCtx name item = updateState $ Map.insert name item
+runicAddToCtx name item = updateState $ M.insert name item
 
 -- | Handles getting values from the context stored in the Runic 
 --   parser.
 runicGetFromCtx :: Monad m => String -> RunicT m (Maybe CtxItem)
-runicGetFromCtx name = Map.lookup name <$> getState
+runicGetFromCtx name = M.lookup name <$> getState

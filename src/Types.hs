@@ -30,7 +30,7 @@ data CtxItem
 
 instance Show CtxItem where
     show (Function n _) = "Double" ++ concat (replicate n " -> Double")
-    show (Const n) = show n
+    show (Const v) = show v
     show (Variable v g d) = show v
         ++ "(guess: " ++ maybe "N/A" show g ++ "), "
         ++ maybe "(domain: [-inf, inf])" showDmn d

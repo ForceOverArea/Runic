@@ -1,29 +1,30 @@
 module Main (main) where
 
-import Types (RnCtx)
 import Data.Map (difference, empty)
 import Helpers (testLexeme)
+import Parser.Lexemes (constDecl)
+import Parser.Units (conversion, conversion')
 
 -- testConstDecl :: String
 -- testConstDecl = 
 --     let captured = testLexeme constDecl source "testConstDecl"
---     in show $ difference captured empty
+--     in show $ difference (snd captured) empty
 --     where source = "const x = 3\n"
 
-testConversion :: Double
+testConversion :: String
 testConversion = 
     let captured = testLexeme conversion source "testConversion"
-    in show $ difference captured
-    where source = "[m->millimeter]"
+    in show $ fst captured
+    where source = "[m=>millimeter]"
 
-testConversion' :: Double
+testConversion' :: String
 testConversion' = 
     let captured = testLexeme conversion' source "testConversion'"
-    in show $ difference captured
+    in show $ fst captured
     where source = "convert(\"m\",\"millimeter\")"
--- convert(m,millimeter)
+
 main :: IO ()
 main = do
-    print testConstDecl
+    -- print testConstDecl
     print testConversion
     print testConversion'

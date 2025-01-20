@@ -28,7 +28,7 @@ runicDef = LanguageDef
             , "/"
             , "+"
             , "-"
-            , "->"
+            , "=>"
             ]
         keywords = 
             [ "keep"

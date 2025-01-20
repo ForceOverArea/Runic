@@ -2,13 +2,14 @@ module Helpers
     ( testLexeme
     ) where
 
-import Parser.Lang (runicTokenParser)
-import Types (RnCtx, RunicT)
 import qualified Data.Map as Map (empty)
-import Text.Parsec (getState, runParserT)
+import Parser.Internal (runRunic)
+import Types (RnCtx, RunicT)
+import Data.Functor.Identity (Identity)
 
-testLexeme :: Monad m => RunicT m a -> String -> String -> RnCtx
-testLexeme parserT text testName = 
-    case runParser (parser >> getState) Map.empty testName text of
-        (Right ctx) -> ctx
+testLexeme :: RunicT Identity a -> String -> String -> (a, RnCtx)
+testLexeme parser text testName =
+    let result = runRunic parser Map.empty testName text
+    in case result of
+        (Right final) -> final
         (Left err) -> error $ show err

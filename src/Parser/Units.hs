@@ -29,7 +29,7 @@ data UnitConversionError
     | UnitQuantityMismatch Text Text
     deriving (Eq, Ord)
 
--- | A unit listed in the @units.json@ file read by the Runic 
+-- | A unit listed in the @units.json@ file read by the Runic
 --   compiler.
 unit :: Monad m => RunicT m Text
 unit = do
@@ -46,12 +46,12 @@ conversion = brackets runicTokenParser conversionFactor
 conversionFactor :: Monad m => RunicT m RnNum
 conversionFactor = do
     fromUnit <- unit
-    reservedOp runicTokenParser "->"
+    reservedOp runicTokenParser "=>"
     toUnit <- unit
     possCf <- convertUnits fromUnit toUnit
     case possCf of
         Right cf -> return cf
-        Left _ -> error "ligma balls"
+        Left _ -> error "TODO: add parsec error reporting here! (Units.hs line 54)"
 
 -- | A unit conversion specified in EES syntax rather than the Runic
 --   syntax-sugar notation.
@@ -61,7 +61,7 @@ conversion' = do
     possCf <- uncurry convertUnits =<< parens runicTokenParser conversionFactor'
     case possCf of
         Right cf -> return cf
-        Left _ -> error "ligma balls"
+        Left _ -> error "TODO: add parsec error reporting here! (Units.hs line 64)"
 
 -- | Shorthand for the internals of a @conversion'@ lexeme.
 conversionFactor' :: Monad m => RunicT m (Text, Text)

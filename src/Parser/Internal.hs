@@ -1,6 +1,9 @@
 {-# LANGUAGE Safe #-}
 module Parser.Internal
     ( evalRunicT
+    , evalRunic
+    , runRunicT
+    , runRunic
     , runicAddToCtx
     , runicGetFromCtx
     ) where
@@ -8,19 +11,44 @@ module Parser.Internal
 import safe Control.Monad.Reader (runReaderT)
 import safe qualified Data.Map as M (empty, insert, lookup)
 import safe Text.Parsec (getState, runParserT, updateState, SourceName, ParseError)
-import safe Types (CtxItem, RunicT, UCMap)
+import safe Types (CtxItem, RnCtx, RunicT, UCMap)
+import Control.Monad.Identity (Identity (runIdentity))
+
+-- | Performs a @Runic@ monad transformer action, returning the final
+--   value returned by the action. 
+runRunicT :: Monad m => RunicT m a -> UCMap -> SourceName -> String -> m (Either ParseError (a, RnCtx))
+runRunicT action ucMap sourceName inputStream
+    = flip runReaderT ucMap
+    $ runParserT action' M.empty sourceName inputStream
+    where
+        action' = do
+            result <- action
+            finalState <- getState
+            return (result, finalState)
+
+-- | Performs a @Runic@ monad action, returning the final value 
+--   returned by the action. 
+runRunic :: RunicT Identity a -> UCMap -> SourceName -> String -> Either ParseError (a, RnCtx)
+runRunic action ucMap sourceName inputStream =
+    runIdentity $ runRunicT action ucMap sourceName inputStream
 
 -- | Evaluates a @RunicT@ monad transformer action, returning the 
---   final state of the contained within the Runic parser.
+--   final state of the context contained within the Runic parser.
 evalRunicT :: Monad m
-    => RunicT m ()
+    => RunicT m a
     -> UCMap
     -> SourceName
     -> String
-    -> m (Either ParseError ())
-evalRunicT action ucMap sourceName inputStream
-    = flip runReaderT ucMap 
-    $ runParserT action M.empty sourceName inputStream
+    -> m (Either ParseError RnCtx)
+evalRunicT action ucMap sourceName inputStream = do
+    result <- runRunicT action ucMap sourceName inputStream
+    return $ snd <$> result
+
+-- | Evaluates a @Runic@ monad action, returning the final state of 
+--   the context contained within the Runic parser.
+evalRunic :: RunicT Identity () -> UCMap -> SourceName -> String -> Either ParseError RnCtx
+evalRunic action ucMap sourceName inputStream =
+    runIdentity $ evalRunicT action ucMap sourceName inputStream
 
 -- | Handles adding items to the context folded up by the Runic 
 --   parser.

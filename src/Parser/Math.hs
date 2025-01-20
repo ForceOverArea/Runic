@@ -4,11 +4,12 @@ module Parser.Math
     ) where
 
 import safe Prelude hiding (const, exponent, map, product, sum)
--- import safe Parser.Internal (runicAddToCtx, runicGetFromCtx)
+import safe Parser.Internal (runicGetFromCtx)
 import safe Parser.Lang (runicTokenParser)
 import safe Text.Parsec.Token (GenTokenParser(..))
 import safe Text.Parsec ((<|>))
-import safe Types (RnNum, RunicT)
+import safe Types (CtxItem(..), RnNum, RunicT)
+import Parser.Units (conversion')
 
 expression :: Monad m => RunicT m RnNum
 expression = do sum
@@ -17,6 +18,19 @@ expression = do sum
     <|> quotient
     <|> exponent
     <|> parenthetical
+    <|> conversion'
+    -- <|> function
+    <|> variable
+    <|> float runicTokenParser
+
+variable :: Monad m => RunicT m RnNum
+variable = do
+    name <- identifier runicTokenParser
+    value <- runicGetFromCtx name
+    case value of
+        Just (Const v) -> return v
+        Just (Variable v _ _) -> return v
+        _ -> error "TODO: add parsec error reporting here! (Math.hs line 33)"
 
 parenthetical :: Monad m => RunicT m RnNum
 parenthetical = parens runicTokenParser expression

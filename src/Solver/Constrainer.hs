@@ -1,3 +1,0 @@
-module Solver.Constrainer 
-    ( 
-    ) where

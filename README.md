@@ -15,11 +15,10 @@ fn circumference(r)
 fn area(r)
     return PI * r ^ 2
 
-system main
-    // find the radius of a circle whose 
-    // circumference and area sum up to 69:
-    circumference(x) + area(x) = 69
-end
+system:
+// find the radius of a circle whose 
+// circumference and area sum up to 69:
+circumference(x) + area(x) = 69
 ```
 
 ## How does it work? 

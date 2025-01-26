@@ -1,3 +1,0 @@
-module Compiler.Parser 
-    ( 
-    ) where

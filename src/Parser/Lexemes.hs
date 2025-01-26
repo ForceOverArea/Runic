@@ -7,6 +7,9 @@ module Parser.Lexemes
     , guessDecl
     , keep
     , on
+    , guess
+    , for
+    , const
     ) where
 
 import safe Prelude hiding (const, map)
@@ -28,10 +31,8 @@ domainDecl = do
     _ <- endOfLine
     existing <- runicGetFromCtx name
     case existing of
-        Nothing
-            -> runicAddToCtx name $ Variable 1 Nothing (Just domain)
-        Just (Variable v g Nothing)
-            -> runicAddToCtx name $ Variable v g (Just domain)
+        Nothing -> runicAddToCtx name $ Variable 1 Nothing (Just domain)
+        Just (Variable v g Nothing) -> runicAddToCtx name $ Variable v g (Just domain)
         _ -> error "TODO: add parsec error reporting here! (Lexemes.hs line 35)"
 
 -- | Matches a guess expression, returning the variable name 
@@ -42,12 +43,11 @@ guessDecl = do
     value <- expression
     for
     name <- identifier runicTokenParser
+    _ <- endOfLine
     existing <- runicGetFromCtx name
     case existing of
-        Nothing
-            -> runicAddToCtx name $ Variable 1 (Just value) Nothing
-        Just (Variable v Nothing d)
-            -> runicAddToCtx name $ Variable v (Just value) d
+        Nothing -> runicAddToCtx name $ Variable 1 (Just value) Nothing
+        Just (Variable v Nothing d) -> runicAddToCtx name $ Variable v (Just value) d
         _ -> error "TODO: add parsec error reporting here! (Lexemes.hs line 51)"
 
 -- | Matches a const declaration, returning the constant's name 
@@ -56,9 +56,9 @@ constDecl :: Monad m => RunicT m ()
 constDecl = do
     const
     name <- identifier runicTokenParser
-    _ <- operator runicTokenParser
+    _ <- char '='
     value <- expression
-    -- _ <- char '\n'
+    _ <- endOfLine
     existing <- runicGetFromCtx name
     case existing of
         Nothing -> runicAddToCtx name $ Const value

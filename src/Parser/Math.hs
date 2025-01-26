@@ -18,7 +18,7 @@ expression = p4Term
 exponent :: Monad m => RunicT m RnNum
 exponent = do
     lhs <- p0Term
-    foldl (**) lhs <$> many1 (exponentiate >> p0Term)
+    foldr (**) lhs <$> many1 (exponentiate >> p0Term)
 
 quotient :: Monad m => RunicT m RnNum
 quotient = do
@@ -38,7 +38,7 @@ sum = do
         term = try (plus >> p3Term) 
             <|> (minus >> (* (-1)) <$> p3Term)
 
--- different basic terms
+-- different basic terms -- TODO: make a fold to autogen this
 
 p0Term :: Monad m => RunicT m RnNum
 p0Term = try parenthetical <|> numberLike

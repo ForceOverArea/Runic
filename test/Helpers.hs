@@ -1,15 +1,38 @@
+{-# LANGUAGE LambdaCase #-}
 module Helpers 
-    ( testLexeme
+    ( enumerate
+    , runTest
+    , testLexeme
+    , testLexemeWithUCData
+    , TestRslt
     ) where
 
-import qualified Data.Map as Map (empty)
+import qualified Data.Map as M (empty)
 import Parser.Internal (runRunic)
-import Types (RnCtx, RunicT)
+import Types (RnCtx, RunicT, UCMap)
 import Data.Functor.Identity (Identity)
+import Text.Parsec (eof, ParseError)
 
-testLexeme :: RunicT Identity a -> String -> String -> (a, RnCtx)
-testLexeme parser text testName =
-    let result = runRunic parser Map.empty testName text
-    in case result of
-        (Right final) -> final
-        (Left err) -> error $ show err
+type TestRslt = Either ParseError
+
+testLexeme :: RunicT Identity a -> String -> String -> Either ParseError (a, RnCtx)
+testLexeme = flip testLexemeWithUCData M.empty
+
+testLexemeWithUCData :: RunicT Identity a -> UCMap -> String -> String -> Either ParseError (a, RnCtx)
+testLexemeWithUCData parser ctx text testName = runRunic parser' ctx testName text
+    where
+        parser' = do
+            result <- parser
+            eof
+            return result
+
+enumerate :: [a] -> [(a, Int)]
+enumerate = foldl f []
+    where
+        f :: [(a, Int)] -> a -> [(a, Int)]
+        f acc i = acc ++ [(i, length acc + 1)]
+
+runTest :: (Show a, Show b) => (Either a b, Int) -> IO ()
+runTest = \case
+    (Right result, ln) -> putStrLn $ "[  OK ].....(" ++ show ln ++ ") " ++ show result 
+    (Left err, ln)     -> putStrLn $ "[ NOK ].....(" ++ show ln ++ ") " ++ show err

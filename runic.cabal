@@ -22,14 +22,13 @@ library
     import:           warnings
     exposed-modules:  
         Parser
-        Types
         Parser.Internal
         Parser.Lang
         Parser.Lexemes
         Parser.Math
         Parser.Units
-    -- other-modules:
-        
+        Types
+    -- other-modules:        
     other-extensions:
         Safe
         OverloadedStrings

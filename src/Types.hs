@@ -1,7 +1,7 @@
 {-# LANGUAGE Safe #-}
 module Types
     ( CtxItem(..)
-    , Quantity
+    , Quantity(..)
     , RnCtx
     , RnNum
     , RunicT

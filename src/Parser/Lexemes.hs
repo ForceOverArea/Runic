@@ -13,7 +13,7 @@ import safe Prelude hiding (const, map)
 import safe Parser.Internal (runicAddToCtx, runicGetFromCtx)
 import safe Parser.Lang (runicTokenParser)
 import safe Parser.Math (expression)
-import safe Text.Parsec (endOfLine)
+import safe Text.Parsec (char, endOfLine)
 import safe Text.Parsec.Token (GenTokenParser(..))
 import safe Types (CtxItem(..), RnNum, RunicT)
 
@@ -32,7 +32,7 @@ domainDecl = do
             -> runicAddToCtx name $ Variable 1 Nothing (Just domain)
         Just (Variable v g Nothing)
             -> runicAddToCtx name $ Variable v g (Just domain)
-        _ -> error "ligma balls"
+        _ -> error "TODO: add parsec error reporting here! (Lexemes.hs line 35)"
 
 -- | Matches a guess expression, returning the variable name 
 --   associated with the guess expression.
@@ -48,7 +48,7 @@ guessDecl = do
             -> runicAddToCtx name $ Variable 1 (Just value) Nothing
         Just (Variable v Nothing d)
             -> runicAddToCtx name $ Variable v (Just value) d
-        _ -> error "ligma balls"
+        _ -> error "TODO: add parsec error reporting here! (Lexemes.hs line 51)"
 
 -- | Matches a const declaration, returning the constant's name 
 --   and numeric value.
@@ -58,11 +58,11 @@ constDecl = do
     name <- identifier runicTokenParser
     _ <- operator runicTokenParser
     value <- expression
-    _ <- endOfLine
+    -- _ <- char '\n'
     existing <- runicGetFromCtx name
     case existing of
-        Nothing -> runicAddToCtx name $ Types.Const value
-        Just _ -> error "ligma balls"
+        Nothing -> runicAddToCtx name $ Const value
+        Just _ -> error "TODO: add parsec error reporting here! (Lexemes.hs line 65)"
 
 -- | Matches the keep keyword in the Runic language definition.
 keep :: Monad m => RunicT m ()

@@ -4,9 +4,9 @@ module Main (main) where
 import Prelude hiding (sum)
 import Data.Map (difference, empty, fromList)
 import Helpers (runTest, testLexeme, TestRslt, enumerate, testLexemeWithUCData)
-import Parser.Lexemes (constDecl)
-import Parser.Math (sum)
-import Parser.Units (conversion, conversion')
+import Parser.Lexemes
+import Parser.Math 
+import Parser.Units
 import Types (Quantity(..), UCMap)
 
 -- | 
@@ -21,7 +21,8 @@ testConstDecl :: TestRslt String
 testConstDecl = do
     captured <- testLexeme constDecl source "testConstDecl"
     return (show $ difference (snd captured) empty)
-    where source = "const x = 3 + 3 \n "
+    where source = "const x = 3 + 3;\
+                   \const y = 4 * 4;"
 
 -- | 
 testConversion :: TestRslt String
@@ -54,6 +55,15 @@ testSum source = do
         "testSum"
     return (show $ fst captured)
 
+testExpression :: String -> TestRslt String
+testExpression source = do
+    result <- testLexemeWithUCData
+        expression
+        basicConversionData
+        source
+        "testExpression"
+    return (show $ fst result)
+
 -- | 
 main :: IO [()]
 main = mapM runTest 
@@ -64,4 +74,10 @@ main = mapM runTest
     , testSum "4 + 5"
     , testSum "4.0 + 5.0"
     , testSum "4 + 5 - 9"
+    , testExpression "4 + 5 * (9 - 3) ^ 2"
+    , testExpression "4 + 5 * (3 - 9) ^ 2"
+    , testExpression "4 + 5 * 3 - 9"
+    , testExpression "2^2"
+    , testExpression "2^3^3"
+    , testExpression "2 * convert(millimeter, m)"
     ]

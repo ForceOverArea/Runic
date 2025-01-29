@@ -12,31 +12,33 @@ import safe Text.Parsec ((<|>), (<?>), many1, try)
 import safe Text.Parsec.Token (float, hexadecimal, integer, GenTokenParser(..))
 import safe Types (CtxItem(..), RnNum, RunicT)
 
+(<?|>) :: Monad m => RunicT m a -> RunicT m a -> RunicT m a
+a <?|> b = try a <|> b
+
 expression :: Monad m => RunicT m RnNum
 expression = p4Term
 
 exponent :: Monad m => RunicT m RnNum
 exponent = do
     lhs <- p0Term
-    foldr (**) lhs <$> many1 (exponentiate >> p0Term)
+    foldl (**) lhs <$> many1 (exponentiate >> p0Term)
 
 quotient :: Monad m => RunicT m RnNum
 quotient = do
     lhs <- p1Term 
-    foldl (/) lhs <$> many1 (divide >> p1Term) 
+    foldr (/) lhs <$> many1 (divide >> p1Term) 
 
 product :: Monad m => RunicT m RnNum
 product = do
     lhs <- p2Term
-    foldl (*) lhs <$> many1 (multiply >> p2Term)
+    foldr (*) lhs <$> many1 (multiply >> p2Term)
 
 sum :: Monad m => RunicT m RnNum
 sum = do
     lhs <- p3Term
-    foldl (+) lhs <$> many1 term
+    foldr (+) lhs <$> many1 term
     where 
-        term = try (plus >> p3Term) 
-            <|> (minus >> (* (-1)) <$> p3Term)
+        term = (plus >> p3Term) <?|> (minus >> (* (-1)) <$> p3Term)
 
 -- different basic terms -- TODO: make a fold to autogen this
 
@@ -77,15 +79,15 @@ parenthetical = parens runicTokenParser expression
 
 numberLike :: Monad m => RunicT m RnNum
 numberLike 
-    = do try number
-    <|> try variable
-    <|> try conversion'
+    = do number
+    <?|> variable
+    <?|> try conversion'
     -- <|> function
 
 number :: Monad m => RunicT m RnNum
 number 
-    = do try $ float runicTokenParser 
-    <|> fromInteger <$> (try (integer runicTokenParser) <|> hexadecimal runicTokenParser)
+    = do float runicTokenParser 
+    <?|> (fromInteger <$> (integer runicTokenParser <?|> hexadecimal runicTokenParser))
     <?> "number"
 
 variable :: Monad m => RunicT m RnNum

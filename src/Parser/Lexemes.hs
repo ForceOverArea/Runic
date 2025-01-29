@@ -58,7 +58,7 @@ constDecl = do
     name <- identifier runicTokenParser
     _ <- char '='
     value <- expression
-    _ <- endOfLine
+    _ <- char ';'
     existing <- runicGetFromCtx name
     case existing of
         Nothing -> runicAddToCtx name $ Const value

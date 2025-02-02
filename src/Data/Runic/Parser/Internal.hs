@@ -1,5 +1,5 @@
 {-# LANGUAGE Safe #-}
-module Parser.Internal
+module Data.Runic.Parser.Internal
     ( evalRunicT
     , evalRunic
     , runRunicT
@@ -10,8 +10,8 @@ module Parser.Internal
 
 import safe Control.Monad.Reader (runReaderT)
 import safe qualified Data.Map as M (empty, insert, lookup)
+import safe Data.Runic.Types (CtxItem, RnCtx, RunicT, UCMap)
 import safe Text.Parsec (getState, runParserT, updateState, SourceName, ParseError)
-import safe Types (CtxItem, RnCtx, RunicT, UCMap)
 import Control.Monad.Identity (Identity (runIdentity))
 
 -- | Performs a @Runic@ monad transformer action, returning the final

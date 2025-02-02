@@ -1,5 +1,5 @@
 {-# LANGUAGE Safe #-}
-module Parser.Lang
+module Data.Runic.Parser.Lang
     ( runicTokenParser
     ) where
 

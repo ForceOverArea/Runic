@@ -1,7 +1,7 @@
 {-# LANGUAGE Safe #-}
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 {-# HLINT ignore "Use for_" #-}
-module Parser.Lexemes
+module Data.Runic.Parser.Lexemes
     ( constDecl
     , domainDecl
     , guessDecl
@@ -13,12 +13,12 @@ module Parser.Lexemes
     ) where
 
 import safe Prelude hiding (const, map)
-import safe Parser.Internal (runicAddToCtx, runicGetFromCtx)
-import safe Parser.Lang (runicTokenParser)
-import safe Parser.Math (expression)
+import safe Data.Runic.Parser.Internal (runicAddToCtx, runicGetFromCtx)
+import safe Data.Runic.Parser.Lang (runicTokenParser)
+import safe Data.Runic.Parser.Math (expression)
+import safe Data.Runic.Types (CtxItem(..), RnNum, RunicT)
 import safe Text.Parsec (char, endOfLine)
 import safe Text.Parsec.Token (GenTokenParser(..))
-import safe Types (CtxItem(..), RnNum, RunicT)
 
 -- | Matches a domain expression, returning the variable name 
 --   associated with the guess expression.

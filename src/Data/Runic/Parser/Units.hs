@@ -1,5 +1,5 @@
 {-# LANGUAGE Trustworthy #-}
-module Parser.Units
+module Data.Runic.Parser.Units
     ( convertUnits
     , conversion
     , conversion'
@@ -12,13 +12,13 @@ import safe Control.Monad.Reader (asks, lift)
 import Data.Aeson (decodeStrictText)
 import safe qualified Data.Map as M (empty, foldlWithKey, insert, lookup, union, Map)
 import safe Data.Maybe (fromMaybe)
+import safe Data.Runic.Parser.Lang (runicTokenParser)
+import safe Data.Runic.Types (Quantity, RnNum, RunicT)
 import safe Data.Text (pack, unpack, Text)
 import safe qualified Data.Text.IO as TIO (readFile)
-import safe Parser.Lang (runicTokenParser)
 import safe Text.Parsec ((<|>), many1)
 import safe Text.Parsec.Char (digit, letter, oneOf)
 import safe Text.Parsec.Token (GenTokenParser(..))
-import safe Types (Quantity, RnNum, RunicT)
 
 -- | An error type for when a unit conversion is attempted and cannot
 --   be evaluated due to either not having that unit defined or from
@@ -51,7 +51,7 @@ conversionFactor = do
     possCf <- convertUnits fromUnit toUnit
     case possCf of
         Right cf -> return cf
-        Left _ -> error "TODO: add parsec error reporting here! (Units.hs line 54)"
+        Left _ -> fail "TODO: add parsec error reporting here! (Units.hs line 54)"
 
 -- | A unit conversion specified in EES syntax rather than the Runic
 --   syntax-sugar notation.
@@ -61,7 +61,7 @@ conversion' = do
     possCf <- uncurry convertUnits =<< parens runicTokenParser conversionFactor'
     case possCf of
         Right cf -> return cf
-        Left _ -> error "TODO: add parsec error reporting here! (Units.hs line 64)"
+        Left _ -> fail "TODO: add parsec error reporting here! (Units.hs line 64)"
 
 -- | Shorthand for the internals of a @conversion'@ lexeme.
 conversionFactor' :: Monad m => RunicT m (Text, Text)

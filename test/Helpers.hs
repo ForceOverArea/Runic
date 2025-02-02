@@ -8,7 +8,7 @@ module Helpers
     ) where
 
 import qualified Data.Map as M (empty)
-import Parser.Internal (runRunic)
+import Data.Runic.Parser.Internal (runRunic)
 import Types (RnCtx, RunicT, UCMap)
 import Data.Functor.Identity (Identity)
 import Text.Parsec (eof, many, ParseError)

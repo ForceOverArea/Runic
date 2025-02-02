@@ -1,5 +1,5 @@
 {-# LANGUAGE Safe #-}
-module Types
+module Data.Runic.Types
     ( CtxItem(..)
     , Quantity(..)
     , RnCtx

@@ -21,13 +21,14 @@ common warnings
 library
     import:           warnings
     exposed-modules:  
-        Parser
-        Parser.Internal
-        Parser.Lang
-        Parser.Lexemes
-        Parser.Math
-        Parser.Units
-        Types
+        Data.Runic.Constrainer
+        Data.Runic.Parser
+        Data.Runic.Parser.Internal
+        Data.Runic.Parser.Lang
+        Data.Runic.Parser.Lexemes
+        Data.Runic.Parser.Math
+        Data.Runic.Parser.Units
+        Data.Runic.Types
     -- other-modules:        
     other-extensions:
         Safe
@@ -36,8 +37,10 @@ library
         aeson       >=  2.2.3.0,
         base        ^>= 4.16.4.0,
         containers  >=  0.6.5.1,
+        hmatrix     >=  0.20.0,
         mtl         >=  2.2.2,
         parsec      >=  3.1.18.0,
+        regex-tdfa  >=  1.3.2.2,
         text        >=  1.2.5.0,
     hs-source-dirs:   src
     default-language: Haskell2010

@@ -1,16 +1,16 @@
 {-# LANGUAGE Safe #-}
-module Parser.Math
+module Data.Runic.Parser.Math
     ( expression
     , sum
     ) where
 
 import safe Prelude hiding (const, exponent, map, product, sum)
-import safe Parser.Internal (runicGetFromCtx)
-import safe Parser.Lang (runicTokenParser)
-import safe Parser.Units (conversion')
+import safe Data.Runic.Parser.Internal (runicGetFromCtx)
+import safe Data.Runic.Parser.Lang (runicTokenParser)
+import safe Data.Runic.Parser.Units (conversion')
+import safe Data.Runic.Types (CtxItem(..), RnNum, RunicT)
 import safe Text.Parsec ((<|>), (<?>), many1, try)
 import safe Text.Parsec.Token (float, hexadecimal, integer, GenTokenParser(..))
-import safe Types (CtxItem(..), RnNum, RunicT)
 
 (<?|>) :: Monad m => RunicT m a -> RunicT m a -> RunicT m a
 a <?|> b = try a <|> b

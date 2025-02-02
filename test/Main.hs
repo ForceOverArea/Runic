@@ -4,10 +4,10 @@ module Main (main) where
 import Prelude hiding (sum)
 import Data.Map (difference, empty, fromList)
 import Helpers (runTest, testLexeme, TestRslt, enumerate, testLexemeWithUCData)
-import Parser.Lexemes
-import Parser.Math 
-import Parser.Units
-import Types (Quantity(..), UCMap)
+import Data.Runic.Parser.Lexemes
+import Data.Runic.Parser.Math 
+import Data.Runic.Parser.Units
+import Data.Runic.Types (Quantity(..), UCMap)
 
 -- | 
 basicConversionData :: UCMap

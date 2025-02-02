@@ -1,5 +1,5 @@
 {-# LANGUAGE Safe #-}
-module Parser 
+module Data.Runic.Parser 
     ( -- runicParser
     ) where
 

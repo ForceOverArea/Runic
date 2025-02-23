@@ -21,8 +21,8 @@ testConstDecl :: TestRslt String
 testConstDecl = do
     captured <- testLexeme constDecl source "testConstDecl"
     return (show $ difference (snd captured) empty)
-    where source = "const x = 3 + 3;\
-                   \const y = 4 * 4;"
+    where source = "const x = 3 + 3\n\
+                   \const y = 4 * 4\n"
 
 -- | 
 testConversion :: TestRslt String

@@ -1,78 +1,93 @@
 {-# LANGUAGE Trustworthy #-}
+{-# LANGUAGE InstanceSigs #-}
 module Data.Runic.Constrainer 
-    ( getUnknowns
-    , ConstrainT
+    ( ConstrainT
+    , ConstrainTState(..)
+    , FutureSoln(..)
     ) where
 
-import safe Control.Arrow ((>>>), arr, second)
-import safe Control.Monad.Trans (lift)
 import safe Control.Monad.Except (throwError, ExceptT)
-import safe Control.Monad.Reader (ask, ReaderT)
-import safe Control.Monad.State (get, modify, StateT)
-import safe Data.List (uncons)
-import safe Data.Map (member)
+import safe Control.Monad.RWS (asks, gets, RWST)
+import safe Control.Monad.Trans (lift)
+import safe Data.Set (fromList, difference, intersection, union, Set)
+import safe qualified Data.List (union)
+import safe Data.Map (member, keys)
 import safe Data.Runic.Types (RnCtx)
-import safe Data.Tree (Tree)
 import Text.Regex.TDFA ((=~), getAllTextMatches)
-import Control.Monad.RWS (modify)
-
--- DUDE WE NEED TO USE LENSES
-
--- | The monad transformer used by the Runic problem constrainer
---   it consists of a read-only @RnCtx@ map and a mutable list of 
---   strings to identify which variables have been constrained.
-type ConstrainT m = 
-    StateT (Tree String, [String]) (ReaderT RnCtx (ExceptT ConstrainError m))
 
 data ConstrainError 
     = EquationPoolEmpty
 
 instance Show ConstrainError where
+    show :: ConstrainError -> String
     show EquationPoolEmpty = "The equation pool was empty."
 
--- | An alias for @Control.Monad.Except.throwError@ within the 
---   context of a @ConstrainT@ monad transformer stack. 
-throwCT :: Monad m => ConstrainError -> ConstrainT m a
-throwCT = lift . lift . throwError
+-- | A record type containing data on which variables are 
+--   needed for (and provided by) a solution to a given equation.
+data FutureSoln 
+    = FutureSoln -- ^ A solution to a one-DOF equation
+    { dependencies  :: [String]
+    , solnYields    :: String
+    , equation      :: String
+    }
+    | FutureSystem -- ^ A solution to a constrained, N-DOF system
+    { dependencies  :: [String]
+    , systemYields  :: [String]
+    , equations     :: [String]
+    }
+    deriving (Eq, Ord, Show)
 
-getCtx :: Monad m => ConstrainT m RnCtx
-getCtx = lift ask
+-- | The state stored by a ConstraintT monad action
+data ConstrainTState 
+    = ConstrainTState 
+    { equationPool  :: [String] 
+    , learnedValues :: [String]
+    }
 
--- | Grabs the equation at the top of the equation pool, leaving
---   it untouched in the process.
-headPool :: Monad m => ConstrainT m String
-headPool = do
-    (_, eqPool) <- get
-    case uncons eqPool of
-        Just (hd, _) -> return hd
-        Nothing -> throwCT EquationPoolEmpty
+-- | The monad transformer used by the Runic problem constrainer
+--   it consists of a read-only @RnCtx@ map and a mutable list of 
+--   strings to identify which variables have been constrained.
+type ConstrainT m = RWST 
+    RnCtx                       -- ^ The read-only context of knowns and constraints
+    [FutureSoln]                -- ^ The equations who have a possible solution
+    ConstrainTState             -- ^ The unsolved equation pool 
+    (ExceptT ConstrainError m)  -- ^ Adds error-reporting effects
 
--- | Moves the equation at the top of the pool to the bottom.
-cycle :: Monad m => ConstrainT m ()
-cycle = modify $ second cycle'
-    where
-        cycle' xs = case uncons xs of
-            Just (hd, tl) -> tl ++ [hd]
-            Nothing -> []
-
--- | Attempts to constrain an equation, adding it to the dependency tree 
---   if the equation has at most one unknown variable
--- tryConstrain :: Monad m => ConstrainT m ()
--- tryConstrain = do
---     eqn <- headPool
---     ctx <- getCtx
---     case ctx `getUnknowns` eqn of
---         [x] -> 
-        
---     return ()
-
-
+-- | A regex pattern for a Runic-legal identifier.
 identifierRegex :: String
 identifierRegex = "[a-zA-Z_][a-zA-Z0-9_]*"
 
+-- | Grabs all Runic-legal identifiers from the given equation
+--   or expression.
 getVariables :: String -> [String]
 getVariables = getAllTextMatches . (=~ identifierRegex)
 
-getUnknowns :: RnCtx -> String -> [String]
-getUnknowns ctx = filter (not . (`member` ctx)) . getVariables 
+-- | An alias for @Control.Monad.Except.throwError@ within the 
+--   context of a @ConstrainT@ monad transformer stack. 
+throwError' :: Monad m => ConstrainError -> ConstrainT m a
+throwError' = lift . throwError
+
+-- | Grabs a list of all variables currently known by the
+--   future solution to the given system of equations. 
+knowns :: Monad m => ConstrainT m [String]
+knowns = do
+    known <- asks keys
+    learned <- gets learnedValues
+    return $ Data.List.union known learned
+
+-- | Given an equation as a String, returns a list of the known 
+--   variables that the equation needs in order to yield a solution as
+--   well as a list of the variables that solving this equation may provide.
+--   
+--   If the second list contains only one variable, then this equation is
+--   properly constrained as a one-unknown problem that can be solved to yield 
+--   that variable.
+getKnownsAndUnknowns :: Monad m => String -> ConstrainT m (Set String, Set String)
+getKnownsAndUnknowns eqn = do
+    let vars = fromList $ getVariables eqn
+    ctxKnowns <- fromList <$> knowns
+    return 
+        ( intersection vars ctxKnowns   -- The known variables this solution needs
+        , difference vars ctxKnowns     -- The variables this solution may provide
+        )
 

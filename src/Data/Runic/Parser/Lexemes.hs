@@ -15,9 +15,9 @@ module Data.Runic.Parser.Lexemes
 import safe Prelude hiding (const, map)
 import safe Data.Runic.Parser.Internal (runicAddToCtx, runicGetFromCtx)
 import safe Data.Runic.Parser.Lang (runicTokenParser)
-import safe Data.Runic.Parser.Math (expression)
+import safe Data.Runic.Parser.Math ((<?|>), expression)
 import safe Data.Runic.Types (CtxItem(..), RnNum, RunicT)
-import safe Text.Parsec (char, endOfLine)
+import safe Text.Parsec (char, endOfLine, newline)
 import safe Text.Parsec.Token (GenTokenParser(..))
 
 -- | Matches a domain expression, returning the variable name 
@@ -58,7 +58,7 @@ constDecl = do
     name <- identifier runicTokenParser
     _ <- char '='
     value <- expression
-    _ <- char ';'
+    _ <- newline <?|> endof
     existing <- runicGetFromCtx name
     case existing of
         Nothing -> runicAddToCtx name $ Const value
